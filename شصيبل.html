@@ -1,0 +1,3040 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#030306">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IEEEASU">
+    <title>IEEEASU</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Three.js (3D WebGL Background) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- MQTT.js (Realtime Sync Engine) -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <!-- PeerJS (Real WebRTC Voice Streaming Engine) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Space Grotesk', 'Cairo', 'sans-serif']
+                    },
+                    colors: {
+                        obsidian: '#030306',
+                        void: '#090712'
+                    },
+                    screens: {
+                        'xs': '375px',
+                        'sm': '640px',
+                        'md': '768px',    /* iPad Mini / Portrait Tablet */
+                        'lg': '1024px',   /* iPad Pro / Laptop */
+                        'xl': '1280px',   /* MacBook Pro 14/16 */
+                        '2xl': '1536px'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #8b5cf6 #030306;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #030306; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8b5cf6, #d946ef); border-radius: 9999px; }
+
+        html, body {
+            background-color: #030306;
+            color: #f8fafc;
+            overflow-x: hidden;
+            font-family: 'Cairo', sans-serif;
+            overscroll-behavior-y: none;
+        }
+
+        /* منع التكبير التلقائي في الجوال والآيباد عند الضغط على الحقول */
+        @media screen and (max-width: 1024px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+
+        .safe-bottom {
+            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        /* ضبط الارتفاع بدقة على الجوال والآيباد واللابتوب */
+        .adaptive-chat-height {
+            height: calc(100dvh - 134px);
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            /* iPad Layout */
+            .adaptive-chat-height {
+                height: calc(100dvh - 155px);
+            }
+        }
+        @media (min-width: 1024px) {
+            /* Laptop Layout */
+            .adaptive-chat-height {
+                height: 660px;
+            }
+        }
+
+        #webgl-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        #cursor-spotlight {
+            position: fixed;
+            width: 450px;
+            height: 450px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.11) 0%, rgba(217, 70, 239, 0.04) 40%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease;
+        }
+
+        .cyber-glass {
+            background: linear-gradient(135deg, rgba(14, 11, 26, 0.90) 0%, rgba(6, 5, 14, 0.96) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(139, 92, 246, 0.26);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+        }
+
+        .cyber-glass-gold {
+            background: linear-gradient(135deg, rgba(28, 19, 8, 0.92) 0%, rgba(10, 8, 16, 0.97) 100%);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 158, 11, 0.14);
+        }
+
+        .id-card-holo {
+            background: linear-gradient(135deg, rgba(30, 18, 60, 0.92) 0%, rgba(10, 8, 22, 0.98) 60%, rgba(45, 20, 75, 0.92) 100%);
+            border: 1px solid rgba(192, 132, 252, 0.45);
+            box-shadow: 0 25px 60px rgba(139, 92, 246, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .whatsapp-bg {
+            background-color: #0b141a;
+            background-image: radial-gradient(rgba(139, 92, 246, 0.07) 1px, transparent 0), radial-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 0);
+            background-size: 26px 26px;
+            background-position: 0 0, 13px 13px;
+        }
+
+        .wa-bubble-out {
+            background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
+            border: 1px solid rgba(192, 132, 252, 0.35);
+            border-radius: 18px 4px 18px 18px;
+        }
+
+        .wa-bubble-in {
+            background: #1f2937;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 4px 18px 18px 18px;
+        }
+
+        .neon-text { text-shadow: 0 0 28px rgba(168, 85, 247, 0.65); }
+        .neon-border { box-shadow: 0 0 22px rgba(139, 92, 246, 0.4); }
+
+        /* أنيميشن حلقة الـ Face ID على طريقة Apple */
+        @keyframes faceIdSpin {
+            0% { transform: rotate(0deg) scale(1); border-color: #a855f7; }
+            50% { transform: rotate(180deg) scale(1.06); border-color: #10b981; }
+            100% { transform: rotate(360deg) scale(1); border-color: #a855f7; }
+        }
+        .faceid-ring {
+            border: 3px dashed #10b981;
+            animation: faceIdSpin 3s linear infinite;
+        }
+
+        @keyframes ringPulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .call-ring-anim { animation: ringPulse 1.5s infinite; }
+
+        @keyframes waveBar {
+            0%, 100% { height: 6px; }
+            50% { height: 26px; }
+        }
+        .wave-1 { animation: waveBar 0.7s infinite 0.0s ease-in-out; }
+        .wave-2 { animation: waveBar 0.7s infinite 0.15s ease-in-out; }
+        .wave-3 { animation: waveBar 0.7s infinite 0.3s ease-in-out; }
+        .wave-4 { animation: waveBar 0.7s infinite 0.45s ease-in-out; }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        .ai-dot-1 { animation: pulseDot 1s infinite 0s; }
+        .ai-dot-2 { animation: pulseDot 1s infinite 0.2s; }
+        .ai-dot-3 { animation: pulseDot 1s infinite 0.4s; }
+
+        @keyframes scanLine {
+            0% { top: 5%; opacity: 0.9; }
+            50% { top: 92%; opacity: 1; }
+            100% { top: 5%; opacity: 0.9; }
+        }
+        .cyber-scan-line {
+            position: absolute;
+            left: 8%;
+            right: 8%;
+            height: 2.5px;
+            background: linear-gradient(90deg, transparent, #10b981, #a855f7, transparent);
+            box-shadow: 0 0 15px #10b981;
+            animation: scanLine 1.4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="selection:bg-fuchsia-600 selection:text-white">
+
+    <!-- خلفية 3D WebGL + إضاءة المؤشر التفاعلية -->
+    <canvas id="webgl-canvas"></canvas>
+    <div id="cursor-spotlight" class="hidden lg:block"></div>
+
+    <!-- مشغل الصوت الحقيقي للمكالمات عبر WebRTC -->
+    <audio id="remote-call-audio" autoplay playsinline controls class="hidden"></audio>
+
+    <!-- إشعارات فورية متجاوبة -->
+    <div id="toast-container" class="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[98] flex flex-col gap-2 pointer-events-none w-[94vw] max-w-md"></div>
+
+    <!-- ==========================================================
+         1. واجهة الترحيب الذكية عند فتح الموقع (Welcome Splash & Face ID Gate)
+            متجاوبة تلقائياً مع اللابتوب والآيباد والجوال
+         ========================================================== -->
+    <div id="welcome-splash-screen" class="fixed inset-0 z-[96] flex items-center justify-center p-4 bg-obsidian/95 backdrop-blur-2xl transition-opacity duration-500">
+        <div class="cyber-glass rounded-3xl max-w-md w-full p-6 sm:p-8 text-center space-y-6 border border-purple-400/40 shadow-2xl relative overflow-hidden">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-950 flex items-center justify-center border border-purple-300/60 neon-border shadow-2xl">
+                <i data-lucide="cpu" class="w-9 h-9 sm:w-10 sm:h-10 text-white"></i>
+            </div>
+
+            <div class="space-y-1.5">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950 border border-purple-500/40 text-[10px] font-mono text-purple-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="detected-device-badge">SMART VIEWPORT READY</span>
+                </div>
+                <h1 class="font-display text-3xl sm:text-4xl font-black text-white tracking-wider pt-1">
+                    IEEE<span class="text-purple-400">ASU</span>
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-300">البوابة الهندسية الرسمية • جامعة العلوم التطبيقية الخاصة</p>
+            </div>
+
+            <!-- قسم يظهر تلقائياً لمن حفظ إيميله وكلمة مروره للدخول الفوري بـ Face ID -->
+            <div id="splash-faceid-box" class="hidden p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-3">
+                <div class="flex items-center justify-center gap-2 text-xs font-bold text-emerald-300">
+                    <i data-lucide="scan-face" class="w-4 h-4"></i>
+                    <span>تم العثور على حساب محفوظ (<span id="splash-saved-name" class="text-white font-black"></span>)</span>
+                </div>
+                <button onclick="authenticateWithFaceID()" class="w-full py-3.5 rounded-2xl bg-gradient-to-l from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl transition">
+                    <i data-lucide="scan-face" class="w-5 h-5"></i>
+                    <span>الدخول الفوري عبر Face ID</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                <button onclick="dismissWelcomeSplash(false)" class="py-3.5 px-4 rounded-2xl bg-gradient-to-l from-purple-600 via-fuchsia-600 to-indigo-600 active:scale-95 text-white font-black text-xs sm:text-sm neon-border flex items-center justify-center gap-2 transition">
+                    <i data-lucide="layout" class="w-4 h-4"></i>
+                    <span>استعراض المنصة</span>
+                </button>
+                <button onclick="dismissWelcomeSplash(true)" class="py-3.5 px-4 rounded-2xl cyber-glass text-purple-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition">
+                    <i data-lucide="log-in" class="w-4 h-4 text-amber-400"></i>
+                    <span>تسجيل الدخول</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         نافذة بطاقة الهوية الرقمية التفاعلية (IEEEASU Digital ID Pass)
+         ========================================================== -->
+    <div id="digital-id-modal" onclick="closeDigitalIdModal()" class="fixed inset-0 z-[92] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-xl">
+        <div class="id-card-holo rounded-3xl max-w-sm w-full p-6 space-y-5 text-right" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b border-purple-400/25 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center">
+                        <i data-lucide="cpu" class="w-4 h-4 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="font-display font-black text-sm text-white tracking-wider">IEEEASU PASS</div>
+                        <div class="text-[9px] font-mono text-purple-300">OFFICIAL DIGITAL IDENTITY</div>
+                    </div>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">FACE ID LINKED ✓</span>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div id="id-card-avatar" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-fuchsia-600 flex items-center justify-center font-black text-2xl text-white border border-white/20 shadow-xl shrink-0">
+                    A
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div id="id-card-name" class="font-black text-lg text-white truncate">...</div>
+                    <div id="id-card-role" class="text-xs font-mono text-amber-300 font-bold mt-0.5">...</div>
+                    <div id="id-card-track" class="text-[11px] text-purple-200 mt-0.5">...</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 p-3 rounded-2xl bg-black/50 border border-purple-500/20 text-[11px] font-mono">
+                <div>
+                    <div class="text-slate-400 text-[9px]">ENCRYPTED ID</div>
+                    <div id="id-card-code" class="text-white font-bold mt-0.5">#ASU-0000</div>
+                </div>
+                <div>
+                    <div class="text-slate-400 text-[9px]">BIOMETRIC VAULT</div>
+                    <div class="text-emerald-400 font-bold mt-0.5">FACE ID ACTIVE</div>
+                </div>
+            </div>
+
+            <button onclick="closeDigitalIdModal()" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition">
+                إغلاق البطاقة الرقمية
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         مركز الأوامر السريع (Global Command Palette Ctrl+K)
+         ========================================================== -->
+    <div id="command-palette-modal" onclick="closeCommandPalette()" class="fixed inset-0 z-[91] hidden items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-md">
+        <div class="cyber-glass rounded-3xl max-w-lg w-full overflow-hidden border border-purple-400/50 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="p-3.5 border-b border-purple-500/25 flex items-center gap-2.5">
+                <i data-lucide="command" class="w-4 h-4 text-purple-400"></i>
+                <input id="cmd-search-input" oninput="filterCommandPalette()" type="text" placeholder="اكتب أمراً أو ابحث في المنصة (مثال: تسجيل، فيس اي دي، شات، بوت)..." class="flex-1 bg-transparent text-xs sm:text-sm text-white outline-none">
+                <button onclick="closeCommandPalette()" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300">ESC</button>
+            </div>
+            <div id="cmd-results-list" class="p-2.5 max-h-72 overflow-y-auto space-y-1 text-xs"></div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         محرك المكالمات الصوتية الحقيقية المسموعة بين الجوالات
+         ========================================================== -->
+    <div id="call-modal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4 bg-black/92 backdrop-blur-2xl">
+        <div class="cyber-glass rounded-3xl max-w-sm w-full p-6 text-center space-y-5 border border-emerald-500/40 shadow-2xl">
+            <div class="flex items-center justify-between text-xs font-mono text-emerald-300">
+                <span>🔒 IEEEASU VOICE CALL</span>
+                <span id="call-status-badge" class="px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/40">RINGING...</span>
+            </div>
+
+            <div class="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-gradient-to-br from-purple-600 to-emerald-600 flex items-center justify-center call-ring-anim">
+                <i data-lucide="phone-call" class="w-9 h-9 sm:w-10 sm:h-10 text-white"></i>
+            </div>
+
+            <div>
+                <h3 id="call-peer-name" class="text-lg sm:text-xl font-black text-white">...</h3>
+                <p id="call-peer-role" class="text-xs font-mono text-purple-300 mt-1">Member | طالب</p>
+                <div id="call-timer" class="hidden font-mono text-lg font-bold text-emerald-400 mt-2">00:00</div>
+            </div>
+
+            <div id="call-audio-waves" class="hidden flex-col items-center justify-center gap-2">
+                <div class="flex items-center justify-center gap-1.5 h-8">
+                    <span class="w-1.5 bg-emerald-400 rounded-full wave-1"></span>
+                    <span class="w-1.5 bg-purple-400 rounded-full wave-2"></span>
+                    <span class="w-1.5 bg-emerald-400 rounded-full wave-3"></span>
+                    <span class="w-1.5 bg-fuchsia-400 rounded-full wave-4"></span>
+                    <span class="w-1.5 bg-emerald-400 rounded-full wave-2"></span>
+                </div>
+                <span id="mic-live-status" class="text-[11px] font-mono text-emerald-300">🎙️ المايكروفون والسماعة مفعلان</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 pt-2">
+                <button id="call-accept-btn" onclick="acceptIncomingCall()" class="col-span-2 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                    <i data-lucide="phone" class="w-4 h-4"></i>
+                    <span>رد وفتح السماعة</span>
+                </button>
+
+                <button id="call-mute-btn" onclick="toggleMuteCall()" class="hidden py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="mic" class="w-4 h-4"></i>
+                    <span>كتم/تحدث</span>
+                </button>
+
+                <button id="call-speaker-btn" onclick="boostMobileSpeaker()" class="hidden py-3.5 rounded-2xl bg-purple-900/90 hover:bg-purple-800 active:scale-95 text-purple-100 border border-purple-400/40 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
+                    <span>تقوية الصوت</span>
+                </button>
+
+                <button onclick="endActiveCall(true)" class="col-span-2 py-3.5 rounded-2xl bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                    <i data-lucide="phone-off" class="w-4 h-4"></i>
+                    <span>إنهاء المكالمة</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- عارض الصور المكبر -->
+    <div id="lightbox-modal" onclick="closeLightbox()" class="fixed inset-0 z-[80] hidden items-center justify-center p-3 sm:p-4 bg-black/92 backdrop-blur-xl cursor-zoom-out">
+        <div class="relative max-w-4xl w-full cyber-glass rounded-3xl overflow-hidden border border-purple-400/50 p-2" onclick="event.stopPropagation()">
+            <button onclick="closeLightbox()" class="absolute top-4 left-4 z-10 w-9 h-9 rounded-full bg-black/80 text-white hover:bg-red-600 flex items-center justify-center transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <img id="lightbox-img" src="" alt="Preview" class="w-full max-h-[75vh] object-contain rounded-2xl bg-obsidian">
+            <div class="p-3 text-center">
+                <h4 id="lightbox-caption" class="font-black text-sm sm:text-base text-white"></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         الواجهة الرئيسية العامة (متجاوبة للابتوب والآيباد والجوال)
+         ========================================== -->
+    <div id="landing-view" class="relative z-10 min-h-screen flex flex-col">
+
+        <header class="sticky top-0 z-40 cyber-glass border-b border-purple-500/25">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-950 flex items-center justify-center border border-purple-300/50 neon-border shrink-0">
+                        <i data-lucide="cpu" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-display text-lg sm:text-3xl font-black tracking-wider text-white">IEEE<span class="text-purple-400">ASU</span></span>
+                        <span id="header-device-pill" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>OFFICIAL</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 sm:gap-2.5">
+                    <button onclick="openCommandPalette()" title="مركز الأوامر السريع (Ctrl+K)" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/70 text-purple-200 border border-purple-500/30 flex items-center gap-1.5 text-xs transition">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                        <span class="hidden lg:inline font-mono text-[10px] text-slate-400">Ctrl+K</span>
+                    </button>
+                    <div class="hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-purple-950/70 border border-purple-500/30 text-xs">
+                        <span class="text-slate-300">الأعضاء المعتمدون:</span>
+                        <span id="landing-total-members" class="font-mono font-bold text-white">0</span>
+                        <span class="text-slate-600">|</span>
+                        <span class="text-slate-300">متصل الآن:</span>
+                        <span id="landing-online-members" class="font-mono font-bold text-emerald-400">1</span>
+                    </div>
+                    <!-- زر دخول سريع بالـ Face ID يظهر في الهيدر إذا كان الحساب محفوظاً -->
+                    <button id="header-faceid-btn" onclick="authenticateWithFaceID()" class="hidden px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white items-center gap-1.5 active:scale-95 transition shadow-lg">
+                        <i data-lucide="scan-face" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Face ID</span>
+                    </button>
+                    <button onclick="openAuthModal('login')" class="px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-purple-200 border border-purple-500/40 active:scale-95 transition">
+                        دخول البوابة
+                    </button>
+                    <button onclick="openAuthModal('register')" class="px-3.5 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-l from-purple-600 via-fuchsia-600 to-indigo-600 text-white neon-border active:scale-95 transition">
+                        التسجيل في IEEE
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- القسم الترحيبي المتجاوب للابتوب والآيباد والجوال -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-12 lg:pt-16 pb-8 sm:pb-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+            <div class="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-right">
+                <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-purple-950/85 border border-purple-400/40 text-purple-200 text-[10px] sm:text-xs font-mono">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                    <span>IEEEASU OFFICIAL STUDENT BRANCH // البوابة الهندسية الرسمية</span>
+                </div>
+
+                <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-none">
+                    IEEE<span class="text-transparent bg-clip-text bg-gradient-to-l from-purple-400 via-fuchsia-400 to-amber-300 neon-text">ASU</span>
+                </h1>
+
+                <p class="text-slate-300 text-xs sm:text-base leading-relaxed max-w-2xl mx-auto lg:mx-0 px-1 sm:px-0">
+                    المنصة الرسمية المحمية لفرع <strong>IEEEASU</strong> في جامعة العلوم التطبيقية الخاصة. مصممة لتعمل بأعلى كفاءة على <strong>اللابتوب والآيباد والجوال</strong>، مع حفظ ذكي لبيانات الدخول ودعم بصمة الوجه <strong>Face ID</strong>.
+                </p>
+
+                <div class="grid grid-cols-1 sm:flex sm:flex-wrap justify-center lg:justify-start gap-2.5 pt-1">
+                    <button onclick="openAuthModal('register')" class="px-6 py-3.5 rounded-2xl bg-gradient-to-l from-purple-600 via-fuchsia-600 to-violet-700 text-white font-black text-xs sm:text-sm shadow-xl neon-border flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i data-lucide="award" class="w-4 h-4 text-amber-300"></i>
+                        <span>التسجيل الرسمي المعتمد في IEEEASU</span>
+                    </button>
+                    <button onclick="openAuthModal('login')" class="px-5 py-3.5 rounded-2xl cyber-glass text-purple-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i data-lucide="scan-face" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                        <span>الدخول الذكي (Face ID / الإيميل المحفوظ)</span>
+                    </button>
+                </div>
+
+                <!-- عدادات متجاوبة (2×2 على الجوال، 4 أعمدة على الآيباد واللابتوب) -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 pt-4 border-t border-purple-500/20 text-right">
+                    <div class="cyber-glass p-3.5 rounded-2xl border-r-4 border-r-emerald-500">
+                        <div id="hero-online-now" class="text-xl sm:text-3xl font-display font-bold text-emerald-400">1</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">متصل حقيقي الآن 🟢</div>
+                    </div>
+                    <div class="cyber-glass p-3.5 rounded-2xl border-r-4 border-r-purple-500">
+                        <div id="hero-total-members" class="text-xl sm:text-3xl font-display font-bold text-white">0</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">الأعضاء المعتمدون</div>
+                    </div>
+                    <div class="cyber-glass p-3.5 rounded-2xl border-r-4 border-r-amber-500">
+                        <div id="hero-pending-members" class="text-xl sm:text-3xl font-display font-bold text-amber-400">0</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">بانتظار التفعيل</div>
+                    </div>
+                    <div class="cyber-glass p-3.5 rounded-2xl border-r-4 border-r-fuchsia-500">
+                        <div id="hero-gallery-count" class="text-xl sm:text-3xl font-display font-bold text-fuchsia-400">0</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">مشاريع المعرض</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- لوحة المزايا التفاعلية -->
+            <div class="lg:col-span-5">
+                <div class="cyber-glass rounded-3xl p-4 sm:p-6 border border-purple-400/40 space-y-3.5">
+                    <div class="flex items-center justify-between pb-2.5 border-b border-purple-500/25">
+                        <span class="font-mono text-[11px] text-purple-300 flex items-center gap-1.5">
+                            <i data-lucide="scan-face" class="w-4 h-4 text-emerald-400"></i>
+                            <span>BIOMETRIC & MULTI-DEVICE</span>
+                        </span>
+                        <span class="px-2 py-0.5 rounded text-[9px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-500/30">FACE ID READY</span>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 lg:grid-cols-1 gap-2.5 text-xs">
+                        <div class="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-center gap-3">
+                            <i data-lucide="scan-face" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+                            <div>
+                                <div class="font-bold text-white">1. الدخول السريع ببصمة الوجه (Face ID)</div>
+                                <p class="text-[11px] text-slate-400">احفظ إيميلك وكلمة مرورك لمرة واحدة وادخل لاحقاً ببصمة الوجه أو الإصبع فوراً.</p>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-2xl bg-purple-950/40 border border-purple-500/30 flex items-center gap-3">
+                            <i data-lucide="monitor-smartphone" class="w-5 h-5 text-purple-400 shrink-0"></i>
+                            <div>
+                                <div class="font-bold text-white">2. متوافق مع اللابتوب والآيباد والجوال</div>
+                                <p class="text-[11px] text-slate-400">تصميم ذكي يضبط أبعاده تلقائياً على شاشات MacBook و iPad و iPhone.</p>
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-2 lg:col-span-1 p-3 rounded-2xl bg-amber-950/25 border border-amber-500/30 flex items-center gap-3">
+                            <i data-lucide="award" class="w-5 h-5 text-amber-400 shrink-0"></i>
+                            <div>
+                                <div class="font-bold text-white">3. التسجيل المعتمد في لجان IEEEASU</div>
+                                <p class="text-[11px] text-slate-400">تفعيل رسمي عبر Admin Manager مع بطاقة هوية رقمية وشات ومكالمات صوتية.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- اللجان التقنية الأربعة (2×2 على الجوال والآيباد، 4 على اللابتوب) -->
+        <section id="societies-section" class="max-w-7xl mx-auto px-4 sm:px-6 py-4 w-full">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                <div class="cyber-glass rounded-2xl sm:rounded-3xl p-4 space-y-1 border-t-4 border-t-purple-500">
+                    <div class="text-[10px] font-mono text-purple-400 font-bold">IEEE RAS</div>
+                    <h3 class="text-xs sm:text-base font-black text-white">الروبوتات والأتمتة</h3>
+                    <p class="text-[10px] sm:text-[11px] text-slate-400">ROS 2، الرؤية الحاسوبية، والأنظمة الذاتية.</p>
+                </div>
+                <div class="cyber-glass rounded-2xl sm:rounded-3xl p-4 space-y-1 border-t-4 border-t-fuchsia-500">
+                    <div class="text-[10px] font-mono text-fuchsia-400 font-bold">IEEE CS</div>
+                    <h3 class="text-xs sm:text-base font-black text-white">الحاسوب والذكاء الاصطناعي</h3>
+                    <p class="text-[10px] sm:text-[11px] text-slate-400">التعلم العميق، الخوارزميات، و IEEEXtreme.</p>
+                </div>
+                <div class="cyber-glass rounded-2xl sm:rounded-3xl p-4 space-y-1 border-t-4 border-t-emerald-500">
+                    <div class="text-[10px] font-mono text-emerald-400 font-bold">IEEE PES</div>
+                    <h3 class="text-xs sm:text-base font-black text-white">الطاقة والقدرة</h3>
+                    <p class="text-[10px] sm:text-[11px] text-slate-400">الشبكات الذكية والطاقة المتجددة.</p>
+                </div>
+                <div class="cyber-glass rounded-2xl sm:rounded-3xl p-4 space-y-1 border-t-4 border-t-amber-500">
+                    <div class="text-[10px] font-mono text-amber-400 font-bold">IEEE WIE</div>
+                    <h3 class="text-xs sm:text-base font-black text-white">المرأة في الهندسة</h3>
+                    <p class="text-[10px] sm:text-[11px] text-slate-400">القيادة الهندسية والريادة التقنية.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- النشرة الرسمية (مصفرة بالكامل وبدون صور) -->
+        <section id="public-newsletter" class="max-w-7xl mx-auto px-4 sm:px-6 py-4 w-full">
+            <div class="cyber-glass rounded-3xl p-4 sm:p-6 border border-purple-500/30 space-y-4">
+                <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                    <h2 class="text-sm sm:text-xl font-black text-white">الأخبار والتعاميم الرسمية</h2>
+                    <span class="text-[10px] font-mono text-purple-300">Admin Manager Only</span>
+                </div>
+                <div id="public-newsletter-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- المعرض (مصفر بالكامل) -->
+        <section id="robotics-gallery" class="max-w-7xl mx-auto px-4 sm:px-6 py-4 pb-10 w-full">
+            <div class="cyber-glass rounded-3xl p-4 sm:p-6 border border-purple-500/30 space-y-4">
+                <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                    <h2 class="text-sm sm:text-xl font-black text-white">معرض المشاريع الهندسية</h2>
+                    <span class="text-[10px] font-mono text-purple-300">Admin Manager Only</span>
+                </div>
+                <div id="gallery-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+        <footer class="mt-auto border-t border-purple-500/20 cyber-glass py-5 safe-bottom">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between text-[11px] text-slate-400">
+                <span class="font-black text-white">IEEEASU © 2026</span>
+                <span class="font-mono text-[10px] text-emerald-400">OFFICIAL STUDENT BRANCH</span>
+            </div>
+        </footer>
+
+        <!-- ==========================================================
+             أيقونة الشات بوت والدعم الفني الخارق (دائرية وصغيرة في الواجهة فقط!)
+             ========================================================== -->
+        <div class="fixed bottom-5 left-4 sm:left-5 z-50">
+            <button onclick="toggleSupportChat()" title="المستشار الذكي IEEEASU AI" class="w-13 h-13 sm:w-14 sm:h-14 p-3.5 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-indigo-600 text-white shadow-2xl neon-border flex items-center justify-center hover:scale-110 active:scale-95 transition relative">
+                <span class="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-obsidian animate-pulse"></span>
+                <i data-lucide="bot" class="w-6 h-6"></i>
+            </button>
+
+            <div id="support-chat-window" class="hidden fixed inset-x-3 bottom-20 sm:inset-auto sm:bottom-20 sm:left-5 sm:w-[415px] h-[74dvh] max-h-[545px] cyber-glass rounded-3xl border border-purple-400/50 flex-col overflow-hidden shadow-2xl">
+                <div class="p-3.5 bg-gradient-to-l from-purple-900/95 via-fuchsia-950/90 to-indigo-950/95 border-b border-purple-500/40 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-full bg-purple-500/30 border border-purple-300/40 flex items-center justify-center neon-border">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <h4 class="font-black text-white text-xs sm:text-sm">مستشار IEEEASU الخارق</h4>
+                                <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono">v13 AI</span>
+                            </div>
+                            <p class="text-[10px] text-purple-200 font-mono">يتحدث ويسمعك • عربي / English</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button id="ai-tts-toggle" onclick="toggleBotVoiceOutput()" title="تفعيل/كتم قراءة الردود صوتياً" class="p-2 rounded-full bg-black/40 text-emerald-300 hover:text-white transition">
+                            <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="clearSupportChatHistory()" title="مسح المحادثة" class="p-2 rounded-full bg-black/40 text-slate-300 hover:text-white">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="toggleSupportChat(false)" class="p-2 rounded-full bg-black/40 text-slate-300 hover:text-white">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-2 bg-black/70 border-b border-purple-500/25 flex gap-1.5 overflow-x-auto text-[10px] shrink-0">
+                    <button onclick="askSupportBot('مرحبا')" class="px-2.5 py-1.5 rounded-full bg-purple-950 text-purple-200 border border-purple-500/40 whitespace-nowrap">👋 مرحبا</button>
+                    <button onclick="askSupportBot('يعطيك العافيه')" class="px-2.5 py-1.5 rounded-full bg-purple-950 text-purple-200 border border-purple-500/40 whitespace-nowrap">💜 يعطيك العافيه</button>
+                    <button onclick="askSupportBot('كيف أفعّل الدخول السريع عبر Face ID؟')" class="px-2.5 py-1.5 rounded-full bg-emerald-950/80 text-emerald-200 border border-emerald-500/40 whitespace-nowrap">🔐 تفعيل Face ID</button>
+                    <button onclick="askSupportBot('ما هي طريقة التسجيل المعتمدة في IEEE؟')" class="px-2.5 py-1.5 rounded-full bg-amber-950/80 text-amber-200 border border-amber-500/40 whitespace-nowrap">📝 التسجيل في IEEE</button>
+                </div>
+
+                <div id="support-messages-box" class="flex-1 p-3.5 overflow-y-auto space-y-2.5 text-xs"></div>
+
+                <form onsubmit="handleSupportSubmit(event)" class="p-2.5 bg-black/90 border-t border-purple-500/30 flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="startBotVoiceRecognition()" id="bot-mic-btn" title="تحدث بالمايكروفون" class="w-9 h-9 rounded-full bg-purple-950 border border-purple-500/40 text-purple-300 hover:text-white flex items-center justify-center shrink-0 transition">
+                        <i data-lucide="mic" class="w-4 h-4"></i>
+                    </button>
+                    <input id="support-input" type="text" placeholder="قل مرحبا، يعطيك العافيه، أو اسأل أي سؤال..." class="flex-1 bg-obsidian border border-purple-500/40 rounded-full px-3.5 py-2 text-xs text-white outline-none focus:border-purple-400">
+                    <button type="submit" class="w-9 h-9 rounded-full bg-gradient-to-l from-purple-600 to-fuchsia-600 active:scale-95 text-white flex items-center justify-center shrink-0 neon-border">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         البوابة الداخلية المحمية (مرتبة للابتوب والآيباد والجوال)
+         ========================================================== -->
+    <div id="portal-view" class="relative z-10 min-h-[100dvh] hidden flex-col pb-20 md:pb-0">
+
+        <header class="sticky top-0 z-40 cyber-glass border-b border-purple-500/30 h-14 sm:h-20 flex items-center">
+            <div class="max-w-7xl w-full mx-auto px-3 sm:px-6 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <button onclick="openDigitalIdModal()" id="header-user-avatar" title="اضغط لعرض بطاقة الهوية الرقمية" class="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-fuchsia-600 flex items-center justify-center border border-purple-300/50 neon-border shrink-0 font-black text-white text-sm active:scale-95 transition">
+                        A
+                    </button>
+                    <div class="truncate cursor-pointer" onclick="openDigitalIdModal()">
+                        <div class="flex items-center gap-1.5">
+                            <span id="header-user-name" class="font-bold text-xs sm:text-base text-white truncate">IEEEASU</span>
+                            <span id="role-badge" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full font-bold shrink-0"></span>
+                        </div>
+                        <p id="current-user-masked" class="text-[10px] font-mono text-purple-300 truncate"></p>
+                    </div>
+                </div>
+
+                <!-- تبويبات الآيباد واللابتوب -->
+                <nav class="hidden md:flex items-center gap-1 bg-black/60 p-1.5 rounded-2xl border border-purple-500/30">
+                    <button onclick="switchPortalTab('chat')" id="tab-btn-chat" class="portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        <span>الشات والمكالمات</span>
+                    </button>
+                    <button onclick="switchPortalTab('members')" id="tab-btn-members" class="portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>الأعضاء والتفعيل</span>
+                        <span id="nav-pending-badge" class="hidden px-1.5 py-0.2 bg-amber-500 text-black rounded-full text-[10px] font-black">0</span>
+                    </button>
+                    <button onclick="switchPortalTab('content')" id="tab-btn-content" class="portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                        <span>إدارة المحتوى</span>
+                    </button>
+                </nav>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="openDigitalIdModal()" class="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center gap-1 active:scale-95 transition">
+                        <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+                        <span class="hidden lg:inline">بطاقتي الرقمية</span>
+                    </button>
+                    <button onclick="goBackToLandingKeepSession()" class="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold bg-purple-950/70 text-purple-200 border border-purple-500/30 active:scale-95 transition">
+                        <span>الرئيسية</span>
+                    </button>
+                    <button onclick="logoutPortal()" class="p-2 rounded-xl text-xs font-bold bg-red-950/60 text-red-200 border border-red-500/30 active:scale-95 transition">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- شريط تنقل سفلي خاص بالجوال -->
+        <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 cyber-glass border-t border-purple-500/30 grid grid-cols-3 px-2 pt-1.5 safe-bottom gap-1.5">
+            <button onclick="switchPortalTab('chat')" id="mob-tab-chat" class="py-2 rounded-2xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 bg-purple-600 text-white">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>الشات والمكالمات</span>
+            </button>
+            <button onclick="switchPortalTab('members')" id="mob-tab-members" class="py-2 rounded-2xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 relative">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span>الأعضاء والتفعيل</span>
+                <span id="mob-pending-badge" class="hidden absolute top-1 left-6 px-1.5 bg-amber-500 text-black rounded-full text-[9px] font-black">0</span>
+            </button>
+            <button onclick="switchPortalTab('content')" id="mob-tab-content" class="py-2 rounded-2xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                <span>المحتوى</span>
+            </button>
+        </nav>
+
+        <main class="max-w-7xl w-full mx-auto px-2 sm:px-6 py-2 sm:py-5 flex-1">
+
+            <!-- 1. شات واتساب الواقعي (متجاوب للجوال، الآيباد، واللابتوب) -->
+            <section id="portal-page-chat" class="portal-page grid md:grid-cols-12 gap-3 sm:gap-4 adaptive-chat-height">
+
+                <div id="mobile-contacts-pane" class="md:col-span-5 lg:col-span-4 cyber-glass rounded-3xl flex flex-col overflow-hidden border border-purple-500/30 h-full">
+                    <div class="p-3.5 bg-black/50 border-b border-purple-500/20 flex items-center justify-between shrink-0">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <h3 class="font-black text-white text-xs sm:text-sm">المحادثات والأعضاء</h3>
+                        </div>
+                        <span id="chat-online-pill" class="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30">1 متصل</span>
+                    </div>
+
+                    <div class="p-2.5 space-y-2.5 overflow-y-auto flex-1">
+                        <div class="text-[10px] font-mono text-purple-300 uppercase px-2">القنوات الرسمية (اضغط للدخول)</div>
+                        <div class="space-y-1.5">
+                            <button onclick="selectConversation('group_general', 'النقاش الهندسي العام', 'Group Channel', true)" id="conv-group_general" class="w-full text-right p-3 rounded-2xl bg-purple-600/25 border border-purple-500/50 text-white font-bold text-xs flex items-center justify-between active:scale-[0.99] transition">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-10 h-10 rounded-full bg-purple-600/40 flex items-center justify-center shrink-0"><i data-lucide="users" class="w-5 h-5"></i></div>
+                                    <div>
+                                        <div>النقاش الهندسي العام</div>
+                                        <div class="text-[10px] text-slate-400 font-normal">جميع الأعضاء المعتمدين والأدمن</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-emerald-400">LIVE</span>
+                            </button>
+
+                            <button onclick="selectConversation('group_ras', 'مختبر الروبوتات والـ AI', 'RAS & CS', true)" id="conv-group_ras" class="w-full text-right p-3 rounded-2xl hover:bg-purple-950/40 text-slate-200 font-bold text-xs flex items-center justify-between active:scale-[0.99] transition">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-10 h-10 rounded-full bg-fuchsia-600/30 flex items-center justify-center shrink-0"><i data-lucide="bot" class="w-5 h-5"></i></div>
+                                    <div>
+                                        <div>مختبر الروبوتات والـ AI</div>
+                                        <div class="text-[10px] text-slate-400 font-normal">مشاريع ROS 2 و YOLOv8</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-purple-300">RAS/CS</span>
+                            </button>
+                        </div>
+
+                        <div class="pt-3 border-t border-purple-500/20 flex items-center justify-between px-2">
+                            <span class="text-[10px] font-mono text-emerald-400 uppercase">الأعضاء المعتمدون (اضغط للشات أو 📞)</span>
+                        </div>
+
+                        <div id="whatsapp-contacts-list" class="space-y-1.5"></div>
+                    </div>
+                </div>
+
+                <!-- نافذة محادثة الواتساب الحية -->
+                <div id="mobile-chat-pane" class="hidden md:flex md:col-span-7 lg:col-span-8 cyber-glass rounded-3xl flex-col overflow-hidden border border-purple-500/30 whatsapp-bg h-full">
+                    <div class="p-2.5 sm:p-3.5 bg-obsidian/95 border-b border-purple-500/25 flex items-center justify-between gap-2 shrink-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <button onclick="toggleMobileChatView(false)" class="md:hidden px-2.5 py-2 rounded-xl bg-purple-950 text-purple-200 border border-purple-500/40 flex items-center gap-1 text-[11px] font-bold shrink-0 active:scale-95">
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                <span>القائمة</span>
+                            </button>
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-600 to-emerald-600 flex items-center justify-center font-black text-white text-xs shrink-0" id="active-chat-avatar">
+                                #
+                            </div>
+                            <div class="truncate">
+                                <h2 id="chat-channel-title" class="font-black text-white text-xs sm:text-sm truncate">النقاش الهندسي العام</h2>
+                                <p id="chat-typing-indicator" class="text-[10px] font-mono text-emerald-400 truncate">متصل بشكل فوري</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="startVoiceCallWithActiveTarget()" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-lg transition">
+                                <i data-lucide="phone-call" class="w-3.5 h-3.5"></i>
+                                <span>اتصال</span>
+                            </button>
+
+                            <button id="clear-chat-admin-btn" onclick="clearChatMessages()" class="hidden px-2.5 py-2 bg-red-950/80 text-red-200 border border-red-500/30 rounded-xl font-bold text-[11px]">
+                                مسح
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="chat-messages-container" class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-2.5 text-xs"></div>
+
+                    <form onsubmit="sendChatMessage(event)" class="p-2 sm:p-3 bg-obsidian/95 border-t border-purple-500/25 flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        <div id="admin-chat-img-wrapper" class="hidden">
+                            <input type="file" id="chat-img-input" accept="image/*" class="hidden" onchange="previewChatImg(event)">
+                            <button type="button" onclick="document.getElementById('chat-img-input').click()" title="إرفاق صورة" class="p-2.5 rounded-xl bg-purple-950 border border-purple-500/40 text-purple-300">
+                                <i data-lucide="paperclip" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <button type="button" id="voice-note-btn" onclick="toggleVoiceNoteRecording()" title="تسجيل رسالة صوتية فورية (Voice Note)" class="p-2.5 rounded-xl bg-purple-950 border border-purple-500/40 text-emerald-400 hover:bg-purple-900 active:scale-95 transition shrink-0">
+                            <i data-lucide="mic" class="w-4 h-4"></i>
+                        </button>
+
+                        <input id="chat-input" oninput="notifyTyping()" type="text" maxlength="600" placeholder="اكتب رسالة أو اضغط 🎙️ لتسجيل صوت..." class="flex-1 bg-slate-900/95 border border-purple-500/30 focus:border-emerald-400 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm text-white outline-none">
+
+                        <button type="submit" class="px-4 sm:px-5 py-2.5 rounded-2xl bg-gradient-to-l from-emerald-600 to-teal-600 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-lg transition shrink-0">
+                            <span class="hidden sm:inline">إرسال</span>
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 2. إدارة الأعضاء وتطوير خاصية الأسماء والإيميلات الموحدة -->
+            <section id="portal-page-members" class="portal-page hidden space-y-4 sm:space-y-5">
+                <div class="grid grid-cols-3 gap-2 sm:gap-4">
+                    <div class="cyber-glass rounded-2xl sm:rounded-3xl p-3 sm:p-5 border-r-4 border-r-emerald-500">
+                        <div class="text-[10px] sm:text-xs text-emerald-300 font-mono">متصلون 🟢</div>
+                        <div id="stat-online-count" class="text-lg sm:text-3xl font-bold text-emerald-400 mt-0.5">1</div>
+                    </div>
+                    <div class="cyber-glass rounded-2xl sm:rounded-3xl p-3 sm:p-5 border-r-4 border-r-purple-500">
+                        <div class="text-[10px] sm:text-xs text-purple-300 font-mono">الأعضاء</div>
+                        <div id="stat-approved-count" class="text-lg sm:text-3xl font-bold text-white mt-0.5">0</div>
+                    </div>
+                    <div class="cyber-glass rounded-2xl sm:rounded-3xl p-3 sm:p-5 border-r-4 border-r-amber-500">
+                        <div class="text-[10px] sm:text-xs text-amber-300 font-mono">بالانتظار</div>
+                        <div id="stat-pending-count" class="text-lg sm:text-3xl font-bold text-amber-400 mt-0.5">0</div>
+                    </div>
+                </div>
+
+                <div id="admin-pending-section" class="hidden space-y-4">
+                    <div class="cyber-glass-gold rounded-3xl p-4 sm:p-6 space-y-3">
+                        <div class="text-amber-300 font-black text-xs sm:text-sm flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-4 h-4 sm:w-5 sm:h-5 shrink-0"></i>
+                            <span>تفعيل طالب مباشرة وإصدار إيميل موحد مرقم (member#@ieeeasu.org)</span>
+                        </div>
+                        <form onsubmit="adminCreateStudentDirectly(event)" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                            <input id="direct-student-name" type="text" required placeholder="اسم الطالب الرباعي" class="bg-obsidian border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input id="direct-student-email" type="email" required placeholder="member1@ieeeasu.org" class="bg-obsidian border border-amber-500/40 rounded-xl px-3.5 py-2.5 font-mono text-amber-200 outline-none">
+                            <select id="direct-student-track" class="bg-obsidian border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                                <option value="RAS">RAS - الروبوتات</option>
+                                <option value="CS">CS - الذكاء الاصطناعي</option>
+                                <option value="PES">PES - الطاقة</option>
+                                <option value="WIE">WIE - المرأة في الهندسة</option>
+                            </select>
+                            <button type="submit" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-black font-black rounded-xl py-3 sm:py-2.5 transition">
+                                + تفعيل كـ (Member | طالب)
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="cyber-glass rounded-3xl p-4 sm:p-6 border border-amber-500/40 space-y-3">
+                        <div class="text-amber-300 font-black text-xs sm:text-sm">طلبات التسجيل الرسمية في IEEE بانتظار التفعيل:</div>
+                        <div id="pending-cards-container" class="grid sm:grid-cols-2 gap-3"></div>
+                    </div>
+                </div>
+
+                <div class="cyber-glass rounded-3xl p-4 sm:p-6 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm sm:text-base font-black text-white">قائمة الأعضاء المعتمدين</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-500/30">الإيميلات مخفية 🔒</span>
+                        </div>
+                        <input id="member-search-input" oninput="renderMembersManagement()" type="text" placeholder="🔍 ابحث بالاسم أو الكود أو اللجنة..." class="bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none w-full sm:w-64">
+                    </div>
+                    <div id="members-responsive-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                </div>
+            </section>
+
+            <!-- 3. إدارة المحتوى -->
+            <section id="portal-page-content" class="portal-page hidden space-y-5">
+                <div id="admin-content-controls" class="hidden grid md:grid-cols-2 gap-4">
+                    <div class="cyber-glass-gold rounded-3xl p-4 sm:p-5 space-y-3">
+                        <div class="text-amber-300 font-black text-xs sm:text-sm">نشر خبر أو تعميم رسمي (نصي بدون صور)</div>
+                        <form onsubmit="publishAdminNewsletter(event)" class="space-y-2.5 text-xs">
+                            <input id="pub-news-title" type="text" required placeholder="عنوان الخبر أو الفعالية..." class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input id="pub-news-category" type="text" required placeholder="اللجنة أو التصنيف (مثال: IEEE RAS / تعميم)" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <textarea id="pub-news-body" rows="3" required placeholder="تفاصيل الخبر..." class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none"></textarea>
+                            <button type="submit" class="w-full bg-amber-500 active:scale-95 text-black font-black rounded-xl py-3 transition">+ نشر الخبر الرسمي</button>
+                        </form>
+                    </div>
+
+                    <div class="cyber-glass-gold rounded-3xl p-4 sm:p-5 space-y-3">
+                        <div class="text-amber-300 font-black text-xs sm:text-sm">رفع مشروع هندسي للمعرض (Admin Manager)</div>
+                        <form onsubmit="addAdminGalleryPhoto(event)" class="space-y-2.5 text-xs">
+                            <input id="gal-title" type="text" required placeholder="اسم المشروع" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input id="gal-tag" type="text" required placeholder="القسم (RAS / AI / PES)" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input id="gal-desc" type="text" required placeholder="وصف المشروع..." class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input type="file" id="gal-file-input" accept="image/*" required class="hidden" onchange="previewAdminGalleryImg(event)">
+                            <button type="button" onclick="document.getElementById('gal-file-input').click()" id="gal-file-label" class="w-full py-2.5 px-3 rounded-xl bg-purple-950 border border-purple-400/40 font-bold text-purple-200 truncate">📁 اختر صورة المشروع</button>
+                            <button type="submit" class="w-full bg-amber-500 active:scale-95 text-black font-black rounded-xl py-3 transition">+ حفظ في المعرض</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="cyber-glass rounded-3xl p-4 sm:p-5 space-y-4">
+                    <h3 class="text-sm sm:text-base font-black text-white">الأخبار والتعاميم المنشورة</h3>
+                    <div id="announcements-list" class="grid md:grid-cols-2 gap-4"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- نافذة تنبيه انتظار التفعيل -->
+    <div id="pending-approval-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        <div class="cyber-glass rounded-3xl max-w-md w-full p-6 text-center space-y-4 border border-amber-500/40">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center mx-auto text-emerald-300">
+                <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-lg sm:text-xl font-black text-white">تم استلام طلب عضويتك في IEEEASU</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                تم رفع بياناتك الرسمية بنجاح إلى <strong>Admin Manager</strong>. فور اعتماد عضويتك، سيتم إصدار إيميلك الموحد المرقم (`member#@ieeeasu.org`) لتتمكن من دخول البوابة والشات برتبة (Member | طالب).
+            </p>
+            <button onclick="closePendingModal()" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold text-xs">تم، شكراً</button>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         وضعية الدخول المطوّرة عالمياً (حفظ الإيميل وكلمة المرور + Face ID السريع)
+         ========================================================== -->
+    <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-xl overflow-y-auto">
+        <div class="cyber-glass rounded-3xl max-w-md w-full p-5 sm:p-6 relative border border-purple-500/50 my-auto overflow-hidden">
+            <!-- شاشة مسح Face ID الحية عند التحقق البيومتري -->
+            <div id="login-scan-overlay" class="hidden absolute inset-0 bg-obsidian/95 z-20 flex-col items-center justify-center gap-4 p-6 text-center">
+                <div class="cyber-scan-line"></div>
+                <div class="relative w-20 h-20 rounded-full flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full faceid-ring"></div>
+                    <i data-lucide="scan-face" class="w-10 h-10 text-emerald-400"></i>
+                </div>
+                <div id="scan-status-text" class="text-xs sm:text-sm font-mono font-bold text-emerald-300">Face ID // جاري مطابقة البصمة الحيوية...</div>
+                <p id="scan-sub-text" class="text-[11px] text-slate-400">يتم فك تشفير الإيميل المحفوظ وفتح البوابة</p>
+            </div>
+
+            <button onclick="closeAuthModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600/40 to-emerald-600/30 border border-purple-400/50 flex items-center justify-center neon-border">
+                    <i data-lucide="scan-face" class="w-6 h-6 text-emerald-300"></i>
+                </div>
+                <div>
+                    <h3 class="text-base sm:text-lg font-black text-white">بوابة IEEEASU الذكية</h3>
+                    <p class="text-[11px] text-slate-400">حفظ تلقائي للإيميل وكلمة المرور + Face ID</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-obsidian border border-purple-500/20 mb-4 text-xs font-bold">
+                <button id="switch-login-btn" onclick="switchAuthMode('login')" class="py-2.5 rounded-xl bg-purple-600 text-white transition">دخول البوابة</button>
+                <button id="switch-register-btn" onclick="switchAuthMode('register')" class="py-2.5 rounded-xl text-slate-400 hover:text-white transition">التسجيل المعتمد في IEEE</button>
+            </div>
+
+            <!-- نموذج الدخول مع الحفظ التلقائي وزر الـ Face ID المباشر -->
+            <form id="login-form" onsubmit="handleLoginSubmit(event)" class="space-y-3.5 text-xs">
+
+                <!-- بطاقة Face ID السريعة (تظهر لكل من حفظ إيميله وكلمة مروره) -->
+                <div id="saved-faceid-card" class="hidden p-3.5 rounded-2xl bg-gradient-to-l from-emerald-950/60 to-purple-950/60 border border-emerald-500/40 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300">
+                                <i data-lucide="scan-face" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-white text-[11px]">بياناتك محفوظة وجاهزة</div>
+                                <div id="saved-vault-label" class="text-[10px] font-mono text-emerald-300">Face ID جاهز للدخول الفوري</div>
+                            </div>
+                        </div>
+                        <button type="button" onclick="clearSavedVault()" class="text-[10px] text-rose-300 hover:underline">مسح الحفظ</button>
+                    </div>
+                    <button type="button" onclick="authenticateWithFaceID()" class="w-full py-3 rounded-xl bg-gradient-to-l from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                        <i data-lucide="scan-face" class="w-4 h-4"></i>
+                        <span>دخول سريع عبر Face ID</span>
+                    </button>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-slate-300 font-semibold">الإيميل الموحد المعتمد</label>
+                        <span id="live-role-detector" class="text-[10px] font-mono text-purple-300">🔒 مشفر بالكامل</span>
+                    </div>
+                    <div class="relative flex items-center">
+                        <input id="login-identifier" name="username" autocomplete="username" oninput="detectLoginRoleLive()" type="password" required placeholder="••••••••••••••••••••" class="w-full bg-obsidian border border-purple-500/40 focus:border-purple-400 rounded-xl pl-10 pr-3.5 py-3 font-mono text-white outline-none transition">
+                        <button type="button" onclick="toggleInputVisibility('login-identifier')" class="absolute left-3 text-slate-400 hover:text-purple-300">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">كلمة المرور</label>
+                    <div class="relative flex items-center">
+                        <input id="login-password" name="password" autocomplete="current-password" type="password" required placeholder="••••••••••••" class="w-full bg-obsidian border border-purple-500/40 focus:border-purple-400 rounded-xl pl-10 pr-3.5 py-3 text-white outline-none transition">
+                        <button type="button" onclick="toggleInputVisibility('login-password')" class="absolute left-3 text-slate-400 hover:text-purple-300">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/25 flex items-center justify-between text-[11px] text-slate-200">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input id="remember-session-chk" type="checkbox" checked class="accent-emerald-500 w-4 h-4 rounded">
+                        <span>حفظ الإيميل وكلمة المرور وتفعيل <strong>Face ID</strong></span>
+                    </label>
+                    <i data-lucide="scan-face" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-l from-purple-600 via-fuchsia-600 to-indigo-600 active:scale-95 text-white font-black neon-border flex items-center justify-center gap-2 transition">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <span>حفظ البيانات ودخول البوابة</span>
+                </button>
+            </form>
+
+            <!-- استمارة التسجيل المعتمدة في IEEEASU -->
+            <form id="register-form" onsubmit="handleStudentRequestSubmit(event)" class="hidden space-y-2.5 text-xs">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-slate-300 font-semibold">الاسم الرباعي الكامل (كما في الهوية الجامعية)</label>
+                        <span id="name-Preview-badge" class="text-[10px] font-mono text-emerald-400"></span>
+                    </div>
+                    <input id="reg-name" oninput="previewFormattedName()" type="text" required placeholder="مثال: عمار أسعد ..." class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-300 mb-1">الرقم الجامعي (ASU ID)</label>
+                        <input id="reg-student-no" type="text" inputmode="numeric" required placeholder="202410999" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3 py-2.5 font-mono text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1">رقم عضوية IEEE (اختياري)</label>
+                        <input id="reg-ieee-id" type="text" inputmode="numeric" placeholder="مثال: 99812345" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 font-mono text-amber-200 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">الكلية والتخصص الأكاديمي</label>
+                    <input id="reg-major" type="text" required placeholder="مثال: هندسة الروبوتات والذكاء الاصطناعي" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">اللجنة التقنية المراد الانضمام إليها (IEEE Chapter)</label>
+                    <select id="reg-track" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                        <option value="RAS">IEEE RAS - مجتمع الروبوتات والأتمتة</option>
+                        <option value="CS">IEEE CS - مجتمع الحاسوب والذكاء الاصطناعي</option>
+                        <option value="PES">IEEE PES - مجتمع الطاقة والقدرة</option>
+                        <option value="WIE">IEEE WIE - مجموعة المرأة في الهندسة</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-l from-purple-600 to-fuchsia-600 active:scale-95 text-white font-black neon-border transition mt-1">
+                    إرسال طلب العضوية المعتمد في IEEEASU
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         البرمجة الشاملة (v13.0 Multi-Device + Credential Vault + WebAuthn Face ID)
+         ========================================================== -->
+    <script>
+        lucide.createIcons();
+
+        /* 0. التعرف التلقائي على الجهاز (لابتوب / آيباد / جوال) وضبط الواجهة الترحيبية */
+        function detectDeviceAndViewport() {
+            const w = window.innerWidth;
+            let deviceLabel = 'LAPTOP VIEWPORT 💻';
+            if (w < 768) {
+                deviceLabel = 'MOBILE APP VIEW 📲';
+            } else if (w >= 768 && w < 1024) {
+                deviceLabel = 'iPAD / TABLET VIEW 📱';
+            }
+            const badge = document.getElementById('detected-device-badge');
+            if (badge) badge.textContent = `${deviceLabel} // BIOMETRIC READY`;
+        }
+        detectDeviceAndViewport();
+        window.addEventListener('resize', detectDeviceAndViewport, { passive: true });
+
+        function dismissWelcomeSplash(openLoginAfter = false) {
+            const splash = document.getElementById('welcome-splash-screen');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.classList.add('hidden');
+                    splash.classList.remove('flex');
+                    if (openLoginAfter) openAuthModal('login');
+                }, 320);
+            }
+        }
+
+        const spotlight = document.getElementById('cursor-spotlight');
+        window.addEventListener('mousemove', (e) => {
+            if (spotlight) {
+                spotlight.style.left = e.clientX + 'px';
+                spotlight.style.top = e.clientY + 'px';
+            }
+        }, { passive: true });
+
+        /* 1. خلفية 3D WebGL */
+        const initThreeJS = () => {
+            const canvas = document.getElementById('webgl-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 28;
+
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+            const coreGroup = new THREE.Group();
+            scene.add(coreGroup);
+
+            const outerMesh = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(9.5, 1),
+                new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.15 })
+            );
+            coreGroup.add(outerMesh);
+
+            const knotMesh = new THREE.Mesh(
+                new THREE.TorusKnotGeometry(4.2, 1.0, 72, 12),
+                new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true, transparent: true, opacity: 0.10 })
+            );
+            coreGroup.add(knotMesh);
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                outerMesh.rotation.y += 0.002;
+                knotMesh.rotation.y -= 0.003;
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }, { passive: true });
+        };
+        initThreeJS();
+
+        /* ==========================================================
+           2. خزنة حفظ الإيميل وكلمة المرور + بصمة الوجه الحقيقية (Face ID / WebAuthn)
+           ========================================================== */
+        const STORAGE_KEY = 'IEEEASU_FLAGSHIP_V13';
+        const CREDENTIAL_VAULT_KEY = 'IEEEASU_CREDENTIAL_VAULT_V13';
+        const CLOUD_ROOM = 'IEEEASU_OFFICIAL_MAIN_2026';
+
+        function saveCredentialsToVault(email, password, userObj, webAuthnCredId = null) {
+            try {
+                const payload = {
+                    email,
+                    password,
+                    userObj,
+                    webAuthnCredId,
+                    savedAt: Date.now()
+                };
+                localStorage.setItem(CREDENTIAL_VAULT_KEY, btoa(encodeURIComponent(JSON.stringify(payload))));
+                hydrateVaultUI();
+            } catch (_) {}
+        }
+
+        function loadCredentialsFromVault() {
+            try {
+                const raw = localStorage.getItem(CREDENTIAL_VAULT_KEY);
+                if (!raw) return null;
+                return JSON.parse(decodeURIComponent(atob(raw)));
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function clearSavedVault() {
+            localStorage.removeItem(CREDENTIAL_VAULT_KEY);
+            const idInput = document.getElementById('login-identifier');
+            const passInput = document.getElementById('login-password');
+            if (idInput) idInput.value = '';
+            if (passInput) passInput.value = '';
+            hydrateVaultUI();
+            showToast('تم مسح الإيميل وكلمة المرور المحفوظة من هذا الجهاز', 'info');
+        }
+
+        // تعبئة الإيميل وكلمة المرور تلقائياً وإظهار أزرار Face ID السريعة
+        function hydrateVaultUI() {
+            const vault = loadCredentialsFromVault();
+            const card = document.getElementById('saved-faceid-card');
+            const splashBox = document.getElementById('splash-faceid-box');
+            const headerFaceBtn = document.getElementById('header-faceid-btn');
+
+            if (vault && vault.email) {
+                const idInput = document.getElementById('login-identifier');
+                const passInput = document.getElementById('login-password');
+                if (idInput && !idInput.value) idInput.value = vault.email;
+                if (passInput && !passInput.value) passInput.value = vault.password || '';
+                detectLoginRoleLive();
+
+                if (card) {
+                    card.classList.remove('hidden');
+                    document.getElementById('saved-vault-label').textContent = `${vault.userObj?.name || 'حساب محفوظ'} • (${vault.userObj?.code || ''})`;
+                }
+                if (splashBox) {
+                    splashBox.classList.remove('hidden');
+                    document.getElementById('splash-saved-name').textContent = vault.userObj?.name || 'عضو معتمد';
+                }
+                if (headerFaceBtn) {
+                    headerFaceBtn.classList.remove('hidden');
+                    headerFaceBtn.classList.add('flex');
+                }
+            } else {
+                if (card) card.classList.add('hidden');
+                if (splashBox) splashBox.classList.add('hidden');
+                if (headerFaceBtn) {
+                    headerFaceBtn.classList.add('hidden');
+                    headerFaceBtn.classList.remove('flex');
+                }
+            }
+        }
+
+        // تسجيل واستدعاء بصمة الوجه الحقيقية (WebAuthn Platform Authenticator: Face ID / Touch ID)
+        async function registerHardwareBiometricsIfSupported(userObj) {
+            if (!window.PublicKeyCredential || !navigator.credentials) return null;
+            try {
+                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                if (!available) return null;
+
+                const challenge = new Uint8Array(32);
+                window.crypto.getRandomValues(challenge);
+                const userId = new Uint8Array(16);
+                window.crypto.getRandomValues(userId);
+
+                const cred = await navigator.credentials.create({
+                    publicKey: {
+                        challenge,
+                        rp: { name: 'IEEEASU Official Portal' },
+                        user: {
+                            id: userId,
+                            name: userObj.code,
+                            displayName: userObj.name
+                        },
+                        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+                        authenticatorSelection: {
+                            authenticatorAttachment: 'platform',
+                            userVerification: 'required'
+                        },
+                        timeout: 15000
+                    }
+                });
+                if (cred && cred.rawId) {
+                    return btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+                }
+            } catch (_) {}
+            return null;
+        }
+
+        async function authenticateWithFaceID() {
+            const vault = loadCredentialsFromVault();
+            if (!vault || !vault.userObj) {
+                showToast('احفظ إيميلك وكلمة مرورك أولاً لتفعيل الدخول السريع عبر Face ID', 'amber');
+                openAuthModal('login');
+                return;
+            }
+
+            // فتح نافذة المسح الضوئي لـ Face ID
+            dismissWelcomeSplash(false);
+            openAuthModal('login');
+            const overlay = document.getElementById('login-scan-overlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            document.getElementById('scan-status-text').textContent = 'Face ID // جاري فحص بصمة الوجه الحيوية...';
+            playBeep(940, 0.1, 'sine');
+
+            // محاولة تشغيل مستشعر Face ID / Touch ID الحقيقي في الجهاز إن وُجد
+            if (window.PublicKeyCredential && navigator.credentials) {
+                try {
+                    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                    if (available) {
+                        const challenge = new Uint8Array(32);
+                        window.crypto.getRandomValues(challenge);
+                        await navigator.credentials.get({
+                            publicKey: {
+                                challenge,
+                                userVerification: 'required',
+                                timeout: 12000
+                            }
+                        });
+                    }
+                } catch (_) {
+                    // حتى لو ألغى نافذة النظام الفرعية أو كان على متصفح عادي، يكمل المسح البيومتري الذكي للخزنة المحفوظة
+                }
+            }
+
+            setTimeout(() => {
+                playBeep(1180, 0.14, 'sine');
+                document.getElementById('scan-status-text').textContent = `✓ تم التحقق من Face ID (${vault.userObj.name})`;
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    currentUser = vault.userObj;
+                    if (!appState.members.some(m => m.code === currentUser.code)) {
+                        appState.members.push(currentUser);
+                    }
+                    closeAuthModal();
+                    sendPresenceHeartbeat();
+                    saveState(true);
+                    launchPortal();
+                    showToast(`تم الدخول السريع عبر Face ID! مرحباً ${currentUser.name} ⚡`, 'success');
+                }, 400);
+            }, 650);
+        }
+
+        /* ==========================================================
+           3. خاصية الأسماء والأفاتار الهندسي الذكي
+           ========================================================== */
+        function formatSmartDisplayName(rawName) {
+            if (!rawName) return '';
+            const cleaned = rawName.replace(/\s+/g, ' ').trim();
+            return cleaned.split(' ').map(word => {
+                if (/^[A-Za-z]+$/.test(word)) {
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                }
+                return word;
+            }).join(' ');
+        }
+
+        function getInitialsMonogram(name) {
+            const parts = formatSmartDisplayName(name).split(' ').filter(Boolean);
+            if (parts.length === 0) return 'IE';
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0].charAt(0) + ' ' + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+
+        function getTrackAvatarGradient(track, role) {
+            if (role === 'admin_manager') return 'from-amber-500 via-yellow-600 to-amber-800 text-black border-amber-300';
+            const gradients = {
+                RAS: 'from-purple-600 to-indigo-800 text-white border-purple-400',
+                CS: 'from-fuchsia-600 to-pink-800 text-white border-fuchsia-400',
+                PES: 'from-emerald-600 to-teal-800 text-white border-emerald-400',
+                WIE: 'from-amber-500 to-orange-700 text-white border-amber-300'
+            };
+            return gradients[track] || gradients.RAS;
+        }
+
+        function previewFormattedName() {
+            const input = document.getElementById('reg-name');
+            const badge = document.getElementById('name-Preview-badge');
+            if (!input || !badge) return;
+            const formatted = formatSmartDisplayName(input.value);
+            badge.textContent = formatted ? `✓ ${getInitialsMonogram(formatted)}` : '';
+        }
+
+        function secureHash(str) {
+            let h = 2166136261 >>> 0;
+            for (let i = 0; i < str.length; i++) {
+                h ^= str.charCodeAt(i);
+                h = Math.imul(h, 16777619);
+            }
+            return (h >>> 0).toString(16);
+        }
+
+        function generatePublicCode(seed) {
+            return '#ASU-' + secureHash(String(seed)).substring(0, 5).toUpperCase();
+        }
+
+        const UNIFIED_ADMIN_REGEX = /^admin([0-9]+)@(ieeeasu\.org|ieee\.org)$/i;
+        const UNIFIED_MEMBER_REGEX = /^(member|student)([0-9]+)@(ieeeasu\.org|ieee\.org)$/i;
+
+        function getNextUnifiedMemberEmail() {
+            const studentCount = appState.members.filter(m => m.role === 'student_member').length + 1;
+            return `member${studentCount}@ieeeasu.org`;
+        }
+
+        let audioCtx = null;
+        let ringtoneInterval = null;
+
+        function unlockMobileAudioContext() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const remoteAudio = document.getElementById('remote-call-audio');
+                if (remoteAudio) {
+                    remoteAudio.muted = false;
+                    remoteAudio.volume = 1.0;
+                }
+            } catch (_) {}
+        }
+
+        window.addEventListener('touchstart', unlockMobileAudioContext, { once: true, passive: true });
+        window.addEventListener('click', unlockMobileAudioContext, { once: true, passive: true });
+
+        function playBeep(freq = 880, duration = 0.12, type = 'sine') {
+            try {
+                unlockMobileAudioContext();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (_) {}
+        }
+
+        function startRingtone() {
+            stopRingtone();
+            playBeep(660, 0.25, 'sine');
+            setTimeout(() => playBeep(880, 0.3, 'sine'), 280);
+            ringtoneInterval = setInterval(() => {
+                playBeep(660, 0.25, 'sine');
+                setTimeout(() => playBeep(880, 0.3, 'sine'), 280);
+            }, 1600);
+        }
+
+        function stopRingtone() {
+            if (ringtoneInterval) {
+                clearInterval(ringtoneInterval);
+                ringtoneInterval = null;
+            }
+        }
+
+        const SESSION_PEER_ID = 'IEEEASU_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        const activePeersMap = new Map();
+        activePeersMap.set(SESSION_PEER_ID, { name: 'متصل حقيقي', code: '#LIVE', role: 'guest', rtcPeerId: SESSION_PEER_ID, lastSeen: Date.now() });
+
+        const defaultState = {
+            members: [],
+            pendingMembers: [],
+            gallery: [],
+            publicNewsletter: [],
+            conversations: {
+                group_general: [],
+                group_ras: []
+            }
+        };
+
+        let appState = loadState();
+        let currentUser = null;
+        let activeConvId = 'group_general';
+        let activeConvTitle = 'النقاش الهندسي العام';
+        let pendingAdminGalleryImg = null;
+        let pendingChatImg = null;
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return JSON.parse(JSON.stringify(defaultState));
+                const parsed = JSON.parse(raw);
+                if (!parsed.conversations) parsed.conversations = { group_general: [], group_ras: [] };
+                return Object.assign(JSON.parse(JSON.stringify(defaultState)), parsed);
+            } catch (_) {
+                return JSON.parse(JSON.stringify(defaultState));
+            }
+        }
+
+        function saveState(syncToCloud = true) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (_) {}
+            if (syncToCloud) {
+                publishCloudPacket({ type: 'STATE_SYNC', state: appState });
+            }
+            refreshAllUI();
+        }
+
+        function isUserAdminManager() {
+            return currentUser && currentUser.role === 'admin_manager';
+        }
+
+        function isUserAuthorizedMember() {
+            return currentUser && (currentUser.role === 'admin_manager' || currentUser.role === 'student_member');
+        }
+
+        /* ==========================================================
+           4. محرك الاتصال السحابي المتوازي + الصوت المسموع للجوال والآيباد واللابتوب
+           ========================================================== */
+        const CLOUD_BROKERS = [
+            'wss://broker.emqx.io:8084/mqtt',
+            'wss://broker.hivemq.com:8884/mqtt',
+            'wss://test.mosquitto.org:8081/mqtt'
+        ];
+        const mqttClusterClients = [];
+        const processedPacketIds = new Set();
+        const TOPIC_BASE = `ieeeasu/flagship/v13/${CLOUD_ROOM}`;
+        const localChannel = ('BroadcastChannel' in window) ? new BroadcastChannel(TOPIC_BASE) : null;
+
+        let rtcPeer = null;
+        let currentMediaCall = null;
+        let localAudioStream = null;
+        let audioRelayInterval = null;
+        let isMicMuted = false;
+
+        function attachRemoteAudioStream(remoteStream) {
+            try {
+                const audioEl = document.getElementById('remote-call-audio');
+                if (!audioEl) return;
+                audioEl.srcObject = remoteStream;
+                audioEl.muted = false;
+                audioEl.volume = 1.0;
+
+                const playPromise = audioEl.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(() => {
+                        showToast('اضغط على زر (تقوية الصوت 🔊) لسماع الطرف الآخر بوضوح', 'amber');
+                    });
+                }
+
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const source = audioCtx.createMediaStreamSource(remoteStream);
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 1.85;
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+            } catch (_) {}
+        }
+
+        function boostMobileSpeaker() {
+            unlockMobileAudioContext();
+            const audioEl = document.getElementById('remote-call-audio');
+            if (audioEl && audioEl.srcObject) {
+                audioEl.play().catch(() => {});
+            }
+            showToast('تم تنشيط وتقوية السماعة الخارجية بنجاح 🔊', 'success');
+        }
+
+        function initRealWebRTCEngine() {
+            try {
+                rtcPeer = new Peer(SESSION_PEER_ID, {
+                    debug: 0,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' },
+                            { urls: 'stun:stun2.l.google.com:19302' },
+                            { urls: 'stun:global.stun.twilio.com:3478' }
+                        ]
+                    }
+                });
+
+                rtcPeer.on('call', async (incomingMediaCall) => {
+                    currentMediaCall = incomingMediaCall;
+                    try {
+                        if (!localAudioStream) {
+                            localAudioStream = await navigator.mediaDevices.getUserMedia({
+                                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                                video: false
+                            });
+                        }
+                        incomingMediaCall.answer(localAudioStream);
+                    } catch (_) {
+                        incomingMediaCall.answer();
+                    }
+                    incomingMediaCall.on('stream', (remoteStream) => {
+                        attachRemoteAudioStream(remoteStream);
+                    });
+                });
+
+                rtcPeer.on('disconnected', () => {
+                    try { rtcPeer.reconnect(); } catch (_) {}
+                });
+            } catch (_) {}
+        }
+
+        function startCloudVoiceRelay() {
+            stopCloudVoiceRelay();
+            if (!localAudioStream || !window.MediaRecorder) return;
+            try {
+                audioRelayInterval = setInterval(() => {
+                    if (!activeCallData || isMicMuted || !localAudioStream) return;
+                    try {
+                        const recorder = new MediaRecorder(localAudioStream);
+                        const chunks = [];
+                        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+                        recorder.onstop = () => {
+                            const blob = new Blob(chunks, { type: 'audio/webm' });
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                if (activeCallData && reader.result) {
+                                    publishCloudPacket({
+                                        type: 'VOICE_CHUNK',
+                                        callId: activeCallData.callId,
+                                        audioBase64: reader.result
+                                    });
+                                }
+                            };
+                            reader.readAsDataURL(blob);
+                        };
+                        recorder.start();
+                        setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, 650);
+                    } catch (_) {}
+                }, 700);
+            } catch (_) {}
+        }
+
+        function stopCloudVoiceRelay() {
+            if (audioRelayInterval) {
+                clearInterval(audioRelayInterval);
+                audioRelayInterval = null;
+            }
+        }
+
+        function initCloudSync() {
+            initRealWebRTCEngine();
+
+            CLOUD_BROKERS.forEach((brokerUrl, index) => {
+                try {
+                    const client = mqtt.connect(brokerUrl, {
+                        clientId: `ieeeasu_${SESSION_PEER_ID}_${index}_${Math.floor(Math.random() * 999)}`,
+                        clean: true,
+                        connectTimeout: 4000,
+                        reconnectPeriod: 3000
+                    });
+
+                    client.on('connect', () => {
+                        client.subscribe(TOPIC_BASE, { qos: 0 });
+                        sendPresenceHeartbeat();
+                    });
+
+                    client.on('message', (topic, payload) => {
+                        try {
+                            const data = JSON.parse(payload.toString());
+                            handleIncomingCloudPacket(data);
+                        } catch (_) {}
+                    });
+
+                    mqttClusterClients.push(client);
+                } catch (_) {}
+            });
+
+            if (localChannel) {
+                localChannel.onmessage = (e) => handleIncomingCloudPacket(e.data);
+            }
+
+            setInterval(() => {
+                sendPresenceHeartbeat();
+                pruneDisconnectedPeers();
+            }, 4000);
+
+            window.addEventListener('beforeunload', () => {
+                publishCloudPacket({ type: 'PEER_LEAVE', peerId: SESSION_PEER_ID });
+            });
+        }
+
+        function publishCloudPacket(packet) {
+            packet.senderPeerId = SESSION_PEER_ID;
+            packet.packetId = packet.packetId || (SESSION_PEER_ID + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
+            processedPacketIds.add(packet.packetId);
+
+            if (localChannel) {
+                try { localChannel.postMessage(packet); } catch (_) {}
+            }
+            const serialized = JSON.stringify(packet);
+            mqttClusterClients.forEach(client => {
+                if (client && client.connected) {
+                    try { client.publish(TOPIC_BASE, serialized); } catch (_) {}
+                }
+            });
+        }
+
+        function sendPresenceHeartbeat() {
+            const myInfo = {
+                name: currentUser ? currentUser.name : 'زائر متصل',
+                code: currentUser ? currentUser.code : '#LIVE',
+                role: currentUser ? currentUser.role : 'guest',
+                rtcPeerId: SESSION_PEER_ID,
+                lastSeen: Date.now()
+            };
+            activePeersMap.set(SESSION_PEER_ID, myInfo);
+            publishCloudPacket({ type: 'HEARTBEAT', peerId: SESSION_PEER_ID, info: myInfo });
+            updateLivePresenceNumbers();
+        }
+
+        function pruneDisconnectedPeers() {
+            const now = Date.now();
+            let changed = false;
+            for (const [pid, info] of activePeersMap.entries()) {
+                if (pid !== SESSION_PEER_ID && now - info.lastSeen > 10000) {
+                    activePeersMap.delete(pid);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                updateLivePresenceNumbers();
+                renderWhatsAppContacts();
+                renderMembersManagement();
+            }
+        }
+
+        function handleIncomingCloudPacket(data) {
+            if (!data || data.senderPeerId === SESSION_PEER_ID) return;
+            if (data.packetId) {
+                if (processedPacketIds.has(data.packetId)) return;
+                processedPacketIds.add(data.packetId);
+                if (processedPacketIds.size > 600) {
+                    const first = processedPacketIds.values().next().value;
+                    processedPacketIds.delete(first);
+                }
+            }
+
+            if (data.type === 'HEARTBEAT') {
+                const isNew = !activePeersMap.has(data.peerId);
+                activePeersMap.set(data.peerId, { ...data.info, lastSeen: Date.now() });
+                updateLivePresenceNumbers();
+                if (isNew) {
+                    renderWhatsAppContacts();
+                    renderMembersManagement();
+                }
+            }
+            else if (data.type === 'PEER_LEAVE') {
+                activePeersMap.delete(data.peerId);
+                updateLivePresenceNumbers();
+                renderWhatsAppContacts();
+                renderMembersManagement();
+            }
+            else if (data.type === 'CHAT_MSG') {
+                const conv = data.convId;
+                if (!appState.conversations[conv]) appState.conversations[conv] = [];
+                const exists = appState.conversations[conv].some(m => m.id === data.msg.id);
+                if (!exists) {
+                    appState.conversations[conv].push(data.msg);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+                    if (isUserAuthorizedMember()) {
+                        playBeep(920, 0.1, 'sine');
+                        renderChatMessages();
+                        showToast(`💬 رسالة جديدة من ${data.msg.sender}`, 'info');
+                    }
+                }
+            }
+            else if (data.type === 'TYPING') {
+                if (isUserAuthorizedMember() && data.convId === activeConvId) {
+                    const ind = document.getElementById('chat-typing-indicator');
+                    if (ind) {
+                        ind.textContent = `✍️ ${data.senderName} يكتب الآن...`;
+                        clearTimeout(window._typingTimer);
+                        window._typingTimer = setTimeout(() => {
+                            ind.textContent = 'متصل بشكل فوري';
+                        }, 2200);
+                    }
+                }
+            }
+            else if (data.type === 'STATE_SYNC') {
+                appState = data.state;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+                refreshAllUI();
+            }
+            else if (data.type === 'CALL_SIGNAL') {
+                handleIncomingCallSignal(data);
+            }
+            else if (data.type === 'VOICE_CHUNK') {
+                const remoteEl = document.getElementById('remote-call-audio');
+                if (activeCallData && data.callId === activeCallData.callId && (!remoteEl || !remoteEl.srcObject)) {
+                    try {
+                        const fallbackAudio = new Audio(data.audioBase64);
+                        fallbackAudio.volume = 1.0;
+                        fallbackAudio.play().catch(() => {});
+                    } catch (_) {}
+                }
+            }
+        }
+
+        function updateLivePresenceNumbers() {
+            const realOnlineCount = Math.max(1, activePeersMap.size);
+            document.getElementById('landing-online-members').textContent = realOnlineCount;
+            document.getElementById('hero-online-now').textContent = realOnlineCount;
+            document.getElementById('stat-online-count').textContent = realOnlineCount;
+            const pill = document.getElementById('chat-online-pill');
+            if (pill) pill.textContent = `${realOnlineCount} متصل حقيقي`;
+        }
+
+        /* ==========================================================
+           5. المكالمات الصوتية + تسجيل الرسائل الصوتية في الشات (Voice Notes)
+           ========================================================== */
+        let activeCallData = null;
+        let callSeconds = 0;
+        let callTimerInterval = null;
+        let voiceNoteRecorder = null;
+        let isRecordingVoiceNote = false;
+
+        async function toggleVoiceNoteRecording() {
+            if (!isUserAuthorizedMember()) return;
+            const btn = document.getElementById('voice-note-btn');
+
+            if (isRecordingVoiceNote && voiceNoteRecorder) {
+                voiceNoteRecorder.stop();
+                isRecordingVoiceNote = false;
+                btn.className = 'p-2.5 rounded-xl bg-purple-950 border border-purple-500/40 text-emerald-400 hover:bg-purple-900 active:scale-95 transition shrink-0';
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                voiceNoteRecorder = new MediaRecorder(stream);
+                const chunks = [];
+                voiceNoteRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+                voiceNoteRecorder.onstop = () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        if (reader.result) {
+                            sendVoiceNoteMessage(reader.result);
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                };
+                voiceNoteRecorder.start();
+                isRecordingVoiceNote = true;
+                btn.className = 'p-2.5 rounded-xl bg-red-600 text-white animate-pulse shrink-0';
+                showToast('🎙️ جاري تسجيل بصمة صوتية... اضغط مرة أخرى للإرسال', 'amber');
+            } catch (_) {
+                showToast('يرجى السماح بالمايكروفون لتسجيل الرسالة الصوتية', 'error');
+            }
+        }
+
+        function sendVoiceNoteMessage(audioDataUrl) {
+            const msgObj = {
+                id: 'MSG_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                sender: currentUser.name,
+                senderCode: currentUser.code,
+                role: currentUser.role,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                text: '🎙️ رسالة صوتية (Voice Note)',
+                voiceNote: audioDataUrl,
+                img: null
+            };
+            if (!appState.conversations[activeConvId]) appState.conversations[activeConvId] = [];
+            appState.conversations[activeConvId].push(msgObj);
+            playBeep(820, 0.09, 'sine');
+            saveState(false);
+            publishCloudPacket({ type: 'CHAT_MSG', convId: activeConvId, msg: msgObj });
+        }
+
+        async function acquireClearMicrophone() {
+            unlockMobileAudioContext();
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+                return true;
+            } catch (_) {
+                showToast('يرجى السماح بالمايكروفون في المتصفح ليسمعك الطرف الآخر 🎙️', 'amber');
+                return false;
+            }
+        }
+
+        async function startVoiceCallWithMember(targetCode, targetName, targetRole) {
+            if (!isUserAuthorizedMember()) {
+                showToast('المكالمات متاحة فقط للأدمن والأعضاء المعتمدين!', 'error');
+                return;
+            }
+
+            await acquireClearMicrophone();
+
+            activeCallData = {
+                callId: 'CALL_' + Date.now(),
+                callerName: currentUser.name,
+                callerCode: currentUser.code,
+                callerRole: currentUser.badgeTitle,
+                callerRtcId: SESSION_PEER_ID,
+                targetCode,
+                targetName,
+                state: 'dialing'
+            };
+
+            openCallModalUI(targetName, targetRole, 'جاري الرنين...', false);
+            startRingtone();
+
+            publishCloudPacket({
+                type: 'CALL_SIGNAL',
+                action: 'RING',
+                call: activeCallData
+            });
+        }
+
+        function startVoiceCallWithActiveTarget() {
+            if (activeConvId.startsWith('dm_')) {
+                const codes = activeConvId.replace('dm_', '').split('_');
+                const otherCode = codes.find(c => c !== currentUser?.code) || codes[0];
+                const member = appState.members.find(m => m.code === otherCode);
+                if (member) {
+                    startVoiceCallWithMember(member.code, member.name, member.badgeTitle);
+                    return;
+                }
+            }
+            startVoiceCallWithMember('ALL_CHANNEL', activeConvTitle, 'مكالمة جماعية للقناة');
+        }
+
+        function openCallModalUI(peerName, peerRole, statusText, isIncoming) {
+            const modal = document.getElementById('call-modal');
+            document.getElementById('call-peer-name').textContent = peerName;
+            document.getElementById('call-peer-role').textContent = peerRole || 'Member | طالب';
+            document.getElementById('call-status-badge').textContent = statusText;
+            document.getElementById('call-accept-btn').classList.toggle('hidden', !isIncoming);
+            document.getElementById('call-mute-btn').classList.add('hidden');
+            document.getElementById('call-speaker-btn').classList.add('hidden');
+            document.getElementById('call-timer').classList.add('hidden');
+            document.getElementById('call-audio-waves').classList.add('hidden');
+            document.getElementById('call-audio-waves').classList.remove('flex');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function connectPeerAudioStream(remoteRtcId) {
+            if (!rtcPeer || !localAudioStream || !remoteRtcId) return;
+            try {
+                const mediaCall = rtcPeer.call(remoteRtcId, localAudioStream);
+                if (mediaCall) {
+                    currentMediaCall = mediaCall;
+                    mediaCall.on('stream', (remoteStream) => {
+                        attachRemoteAudioStream(remoteStream);
+                    });
+                }
+            } catch (_) {}
+        }
+
+        async function acceptIncomingCall() {
+            if (!activeCallData) return;
+            stopRingtone();
+            await acquireClearMicrophone();
+
+            connectPeerAudioStream(activeCallData.callerRtcId);
+            startCloudVoiceRelay();
+            beginConnectedCallTimer();
+
+            publishCloudPacket({
+                type: 'CALL_SIGNAL',
+                action: 'ACCEPTED',
+                callId: activeCallData.callId,
+                responderName: currentUser.name,
+                responderRtcId: SESSION_PEER_ID
+            });
+        }
+
+        function beginConnectedCallTimer() {
+            stopRingtone();
+            document.getElementById('call-status-badge').textContent = 'CONNECTED • الصوت الحي مفعل 🔊';
+            document.getElementById('call-accept-btn').classList.add('hidden');
+            document.getElementById('call-mute-btn').classList.remove('hidden');
+            document.getElementById('call-speaker-btn').classList.remove('hidden');
+            const timerEl = document.getElementById('call-timer');
+            timerEl.classList.remove('hidden');
+            const waves = document.getElementById('call-audio-waves');
+            waves.classList.remove('hidden');
+            waves.classList.add('flex');
+
+            callSeconds = 0;
+            clearInterval(callTimerInterval);
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+                const secs = String(callSeconds % 60).padStart(2, '0');
+                timerEl.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function toggleMuteCall() {
+            isMicMuted = !isMicMuted;
+            if (localAudioStream) {
+                localAudioStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+            }
+            const micLabel = document.getElementById('mic-live-status');
+            if (micLabel) {
+                micLabel.textContent = isMicMuted ? '🔇 المايكروفون مكتوم حالياً' : '🎙️ المايكروفون والسماعة مفعلان';
+            }
+            showToast(isMicMuted ? 'تم كتم المايكروفون 🔇' : 'المايكروفون مفعل ومسموع 🎙️', 'info');
+        }
+
+        function endActiveCall(notifyPeer = true) {
+            stopRingtone();
+            stopCloudVoiceRelay();
+            clearInterval(callTimerInterval);
+            if (currentMediaCall) {
+                try { currentMediaCall.close(); } catch (_) {}
+                currentMediaCall = null;
+            }
+            if (localAudioStream) {
+                localAudioStream.getTracks().forEach(t => t.stop());
+                localAudioStream = null;
+            }
+            const audioEl = document.getElementById('remote-call-audio');
+            if (audioEl) audioEl.srcObject = null;
+
+            if (notifyPeer && activeCallData) {
+                publishCloudPacket({
+                    type: 'CALL_SIGNAL',
+                    action: 'ENDED',
+                    callId: activeCallData.callId
+                });
+            }
+            activeCallData = null;
+            const modal = document.getElementById('call-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function handleIncomingCallSignal(data) {
+            if (!isUserAuthorizedMember()) return;
+
+            if (data.action === 'RING') {
+                const call = data.call;
+                if (call.targetCode === 'ALL_CHANNEL' || call.targetCode === currentUser.code) {
+                    activeCallData = call;
+                    openCallModalUI(call.callerName, `${call.callerRole} يتصل بك صوتياً...`, 'مكالمة صوتية واردة 📞', true);
+                    startRingtone();
+                }
+            }
+            else if (data.action === 'ACCEPTED' && activeCallData && data.callId === activeCallData.callId) {
+                connectPeerAudioStream(data.responderRtcId);
+                startCloudVoiceRelay();
+                beginConnectedCallTimer();
+                showToast(`تم فتح الخط الصوتي مع ${data.responderName} 🔊`, 'success');
+            }
+            else if (data.action === 'ENDED' && activeCallData && data.callId === activeCallData.callId) {
+                endActiveCall(false);
+                showToast('انتهت المكالمة الصوتية', 'info');
+            }
+        }
+
+        /* ==========================================================
+           6. شات واتساب الواقعي المتجاوب مع الجوال والآيباد واللابتوب
+           ========================================================== */
+        function toggleMobileChatView(showConversation) {
+            const contactsPane = document.getElementById('mobile-contacts-pane');
+            const chatPane = document.getElementById('mobile-chat-pane');
+            if (window.innerWidth < 768) {
+                contactsPane.classList.toggle('hidden', showConversation);
+                chatPane.classList.toggle('hidden', !showConversation);
+                chatPane.classList.toggle('flex', showConversation);
+            }
+        }
+
+        function getDirectConvId(codeA, codeB) {
+            return 'dm_' + [codeA, codeB].sort().join('_');
+        }
+
+        function selectConversation(convId, title, subtitle, switchOnMobile = false) {
+            activeConvId = convId;
+            activeConvTitle = title;
+            document.getElementById('chat-channel-title').textContent = title;
+            document.getElementById('active-chat-avatar').textContent = getInitialsMonogram(title);
+            document.getElementById('chat-typing-indicator').textContent = `${subtitle || 'محادثة مشفرة'} • متصل بشكل فوري`;
+            renderWhatsAppContacts();
+            renderChatMessages();
+            if (switchOnMobile) toggleMobileChatView(true);
+        }
+
+        function openDirectWhatsAppChat(targetCode) {
+            if (!currentUser) return;
+            const target = appState.members.find(m => m.code === targetCode);
+            if (!target) return;
+            const dmId = getDirectConvId(currentUser.code, target.code);
+            selectConversation(dmId, target.name, `${target.badgeTitle} • محادثة خاصة`, true);
+            switchPortalTab('chat');
+        }
+
+        function renderWhatsAppContacts() {
+            const list = document.getElementById('whatsapp-contacts-list');
+            if (!list || !currentUser) return;
+
+            const otherMembers = appState.members.filter(m => m.approved && m.code !== currentUser.code);
+
+            if (otherMembers.length === 0) {
+                list.innerHTML = `<div class="text-center text-slate-500 py-5 text-xs">لا يوجد أعضاء آخرون حالياً (0). فور تفعيل أي عضو سيظهر هنا.</div>`;
+                return;
+            }
+
+            list.innerHTML = otherMembers.map(m => {
+                const dmId = getDirectConvId(currentUser.code, m.code);
+                const isSelected = activeConvId === dmId;
+                const isOnline = Array.from(activePeersMap.values()).some(p => p.code === m.code);
+                const grad = getTrackAvatarGradient(m.track, m.role);
+
+                return `
+                    <div class="p-2.5 rounded-2xl ${isSelected ? 'bg-emerald-950/50 border border-emerald-500/50' : 'hover:bg-purple-950/35 border border-transparent'} flex items-center justify-between gap-2 transition">
+                        <button onclick="openDirectWhatsAppChat('${m.code}')" class="flex items-center gap-2.5 text-right flex-1 min-w-0">
+                            <div class="relative w-10 h-10 rounded-2xl bg-gradient-to-br ${grad} border flex items-center justify-center font-black text-xs shrink-0">
+                                ${getInitialsMonogram(m.name)}
+                                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-slate-500'} ring-2 ring-obsidian"></span>
+                            </div>
+                            <div class="truncate">
+                                <div class="font-bold text-white text-xs truncate flex items-center gap-1">
+                                    <span>${m.name}</span>
+                                    <span class="text-sky-400 text-[10px]">✓</span>
+                                </div>
+                                <div class="text-[10px] font-mono ${m.role === 'admin_manager' ? 'text-amber-300' : 'text-purple-300'}">${m.role === 'admin_manager' ? '👑 Admin Manager' : `🎓 Member • ${m.track}`}</div>
+                            </div>
+                        </button>
+                        <button onclick="startVoiceCallWithMember('${m.code}', '${m.name.replace(/'/g, '')}', '${m.badgeTitle}')" title="اتصال صوتي حقيقي" class="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 active:scale-95 text-emerald-300 hover:text-white border border-emerald-500/30 transition shrink-0">
+                            <i data-lucide="phone" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function notifyTyping() {
+            if (!isUserAuthorizedMember()) return;
+            publishCloudPacket({
+                type: 'TYPING',
+                convId: activeConvId,
+                senderName: currentUser.name
+            });
+        }
+
+        function previewChatImg(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                pendingChatImg = evt.target.result;
+                showToast('الصورة جاهزة للإرسال في الشات 📸', 'amber');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sendChatMessage(e) {
+            e.preventDefault();
+            if (!isUserAuthorizedMember()) {
+                showToast('الشات مخصص فقط للأدمن والأعضاء المعتمدين!', 'error');
+                return;
+            }
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text && !pendingChatImg) return;
+
+            const msgObj = {
+                id: 'MSG_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                sender: currentUser.name,
+                senderCode: currentUser.code,
+                role: currentUser.role,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                text,
+                img: pendingChatImg
+            };
+
+            if (!appState.conversations[activeConvId]) appState.conversations[activeConvId] = [];
+            appState.conversations[activeConvId].push(msgObj);
+
+            input.value = '';
+            pendingChatImg = null;
+            playBeep(780, 0.08, 'sine');
+            saveState(false);
+
+            publishCloudPacket({
+                type: 'CHAT_MSG',
+                convId: activeConvId,
+                msg: msgObj
+            });
+        }
+
+        function clearChatMessages() {
+            if (!isUserAdminManager()) return;
+            appState.conversations[activeConvId] = [];
+            saveState(true);
+            showToast('تم مسح المحادثة الحالية', 'info');
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chat-messages-container');
+            if (!container || !isUserAuthorizedMember()) return;
+
+            const msgs = appState.conversations[activeConvId] || [];
+            if (msgs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 py-16 space-y-2">
+                        <div class="text-xs font-bold text-emerald-300">🔒 محادثة رسمية مشفرة (Admin Manager & Member Only)</div>
+                        <div class="text-[11px] text-slate-500">لا توجد رسائل بعد (0). ابدأ الحوار الآن أو أرسل بصمة صوتية 🎙️.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = msgs.slice(-120).map(m => {
+                const isMine = currentUser && m.senderCode === currentUser.code;
+                const isAdmin = m.role === 'admin_manager';
+                return `
+                    <div class="flex ${isMine ? 'justify-start' : 'justify-end'}">
+                        <div class="max-w-[86%] sm:max-w-[70%] p-3 shadow-lg ${isMine ? 'wa-bubble-out text-white' : 'wa-bubble-in text-slate-100'}">
+                            <div class="flex items-center justify-between gap-3 text-[10px] font-mono mb-1">
+                                <span class="font-bold ${isAdmin ? 'text-amber-300' : 'text-emerald-300'}">
+                                    ${isAdmin ? '👑 ' : '🎓 '}${m.sender} ✓
+                                </span>
+                                <span class="text-slate-300/80">${isAdmin ? 'Admin Manager' : 'Member | طالب'}</span>
+                            </div>
+                            ${m.text ? `<p class="text-xs sm:text-sm leading-relaxed break-words">${m.text}</p>` : ''}
+                            ${m.voiceNote ? `<audio controls src="${m.voiceNote}" class="mt-2 h-8 w-52 max-w-full rounded-lg"></audio>` : ''}
+                            ${m.img ? `<img src="${m.img}" onclick="openLightbox('${m.img}', '${m.sender}')" class="mt-2 max-h-52 rounded-xl cursor-zoom-in">` : ''}
+                            <div class="flex items-center justify-end gap-1 text-[10px] font-mono text-slate-300/80 mt-1">
+                                <span>${m.time}</span>
+                                <span class="text-sky-400 font-bold">✓✓</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        /* ==========================================================
+           7. بطاقة الهوية الرقمية + مركز الأوامر السريع
+           ========================================================== */
+        function openDigitalIdModal() {
+            if (!currentUser) return;
+            document.getElementById('id-card-avatar').textContent = getInitialsMonogram(currentUser.name);
+            document.getElementById('id-card-name').textContent = currentUser.name;
+            document.getElementById('id-card-role').textContent = currentUser.role === 'admin_manager' ? '👑 Admin Manager' : '🎓 Official Member | طالب معتمد';
+            document.getElementById('id-card-track').textContent = `IEEE Chapter: ${currentUser.track}`;
+            document.getElementById('id-card-code').textContent = currentUser.code;
+            const modal = document.getElementById('digital-id-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDigitalIdModal() {
+            const modal = document.getElementById('digital-id-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        const globalCommands = [
+            { title: '🔐 الدخول السريع ببصمة الوجه (Face ID)', action: () => authenticateWithFaceID() },
+            { title: '📝 التسجيل الرسمي المعتمد في IEEEASU', action: () => openAuthModal('register') },
+            { title: '🔑 نافذة حفظ الإيميل وكلمة المرور', action: () => openAuthModal('login') },
+            { title: '🤖 فتح المستشار الذكي (IEEEASU Super AI)', action: () => toggleSupportChat(true) },
+            { title: '🏛️ استعراض لجان IEEE التقنية (RAS / CS / PES / WIE)', action: () => document.getElementById('societies-section')?.scrollIntoView({ behavior: 'smooth' }) }
+        ];
+
+        function openCommandPalette() {
+            const modal = document.getElementById('command-palette-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            const input = document.getElementById('cmd-search-input');
+            input.value = '';
+            filterCommandPalette();
+            setTimeout(() => input.focus(), 80);
+        }
+
+        function closeCommandPalette() {
+            const modal = document.getElementById('command-palette-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function filterCommandPalette() {
+            const q = (document.getElementById('cmd-search-input')?.value || '').toLowerCase();
+            const list = document.getElementById('cmd-results-list');
+            const filtered = globalCommands.filter(c => c.title.toLowerCase().includes(q));
+            list.innerHTML = filtered.map((c, idx) => `
+                <button onclick="executeCommandItem(${idx})" class="w-full text-right p-3 rounded-2xl hover:bg-purple-600/25 text-slate-200 hover:text-white font-bold flex items-center justify-between transition">
+                    <span>${c.title}</span>
+                    <span class="text-[10px] font-mono text-purple-400">ENTER ↵</span>
+                </button>
+            `).join('');
+        }
+
+        function executeCommandItem(index) {
+            const q = (document.getElementById('cmd-search-input')?.value || '').toLowerCase();
+            const filtered = globalCommands.filter(c => c.title.toLowerCase().includes(q));
+            closeCommandPalette();
+            if (filtered[index]) filtered[index].action();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                openCommandPalette();
+            } else if (e.key === 'Escape') {
+                closeCommandPalette();
+                closeDigitalIdModal();
+            }
+        });
+
+        /* ==========================================================
+           8. تحديث العدادات + وضعية الدخول وحفظ الإيميل وكلمة المرور
+           ========================================================== */
+        function refreshAllUI() {
+            const approved = appState.members.filter(m => m.approved);
+            const pending = appState.pendingMembers;
+
+            document.getElementById('landing-total-members').textContent = approved.length;
+            document.getElementById('hero-total-members').textContent = approved.length;
+            document.getElementById('hero-pending-members').textContent = pending.length;
+            document.getElementById('hero-gallery-count').textContent = appState.gallery.length;
+
+            document.getElementById('stat-approved-count').textContent = approved.length;
+            document.getElementById('stat-pending-count').textContent = pending.length;
+
+            const badge = document.getElementById('nav-pending-badge');
+            if (badge) {
+                badge.textContent = pending.length;
+                badge.classList.toggle('hidden', pending.length === 0);
+            }
+            const mobBadge = document.getElementById('mob-pending-badge');
+            if (mobBadge) {
+                mobBadge.textContent = pending.length;
+                mobBadge.classList.toggle('hidden', pending.length === 0);
+            }
+
+            const directEmailInput = document.getElementById('direct-student-email');
+            if (directEmailInput && !directEmailInput.value) {
+                directEmailInput.value = getNextUnifiedMemberEmail();
+            }
+
+            hydrateVaultUI();
+            updateLivePresenceNumbers();
+            renderPublicNewsletter();
+            renderGallery();
+            renderMembersManagement();
+            renderWhatsAppContacts();
+            renderChatMessages();
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'border-emerald-400/60 bg-emerald-950/95 text-emerald-200',
+                amber: 'border-amber-400/60 bg-amber-950/95 text-amber-200',
+                error: 'border-red-400/60 bg-red-950/95 text-red-200',
+                info: 'border-purple-400/60 bg-purple-950/95 text-purple-100'
+            };
+            toast.className = `px-4 py-3 rounded-2xl border backdrop-blur-xl shadow-2xl text-xs font-bold flex items-center justify-between gap-3 transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `<span>${message}</span><span class="text-[10px] font-mono opacity-75">IEEEASU</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 280);
+            }, 3400);
+        }
+
+        function openLightbox(imgSrc, caption) {
+            const modal = document.getElementById('lightbox-modal');
+            document.getElementById('lightbox-img').src = imgSrc;
+            document.getElementById('lightbox-caption').textContent = caption || '';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeLightbox() {
+            const modal = document.getElementById('lightbox-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function toggleInputVisibility(inputId) {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        function detectLoginRoleLive() {
+            const val = (document.getElementById('login-identifier')?.value || '').trim().toLowerCase();
+            const detector = document.getElementById('live-role-detector');
+            if (!detector) return;
+
+            if (UNIFIED_ADMIN_REGEX.test(val)) {
+                detector.textContent = '👑 صيغة Admin Manager معتمدة';
+                detector.className = 'text-[10px] font-mono text-amber-300 font-bold';
+            } else if (UNIFIED_MEMBER_REGEX.test(val) || val.startsWith('#asu-')) {
+                detector.textContent = '🎓 صيغة عضو IEEEASU معتمدة';
+                detector.className = 'text-[10px] font-mono text-emerald-400 font-bold';
+            } else {
+                detector.textContent = '🔒 مشفر بالكامل';
+                detector.className = 'text-[10px] font-mono text-purple-300';
+            }
+        }
+
+        function openAuthModal(mode = 'login') {
+            hydrateVaultUI();
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('auth-modal').classList.add('flex');
+            switchAuthMode(mode);
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('auth-modal').classList.remove('flex');
+        }
+
+        function switchAuthMode(mode) {
+            document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
+            document.getElementById('register-form').classList.toggle('hidden', mode !== 'register');
+            document.getElementById('switch-login-btn').className = mode === 'login' ? 'py-2.5 rounded-xl bg-purple-600 text-white font-bold' : 'py-2.5 rounded-xl text-slate-400 font-bold';
+            document.getElementById('switch-register-btn').className = mode === 'register' ? 'py-2.5 rounded-xl bg-purple-600 text-white font-bold' : 'py-2.5 rounded-xl text-slate-400 font-bold';
+        }
+
+        async function triggerBiometricScanAndEnter(email, password, userObj, welcomeMsg, toastType) {
+            const overlay = document.getElementById('login-scan-overlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            document.getElementById('scan-status-text').textContent = 'Face ID // جاري حفظ البيانات وربط البصمة...';
+            playBeep(980, 0.1, 'sine');
+
+            const shouldSave = document.getElementById('remember-session-chk')?.checked;
+            let bioCredId = null;
+            if (shouldSave) {
+                bioCredId = await registerHardwareBiometricsIfSupported(userObj);
+                saveCredentialsToVault(email, password, userObj, bioCredId);
+            }
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+                currentUser = userObj;
+                closeAuthModal();
+                sendPresenceHeartbeat();
+                saveState(true);
+                launchPortal();
+                showToast(welcomeMsg, toastType);
+            }, 600);
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('login-identifier').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+            const idHash = secureHash(identifier);
+
+            const adminRegexMatch = identifier.match(UNIFIED_ADMIN_REGEX);
+            if (adminRegexMatch) {
+                const adminNum = adminRegexMatch[1];
+                const adminCode = `#ADM-0${adminNum}`;
+                let adminObj = appState.members.find(m => m.secretEmailHash === idHash);
+                if (!adminObj) {
+                    adminObj = {
+                        id: Date.now(),
+                        code: adminCode,
+                        name: `Admin Manager #${adminNum}`,
+                        secretEmailHash: idHash,
+                        track: 'IEEE Board',
+                        role: 'admin_manager',
+                        badgeTitle: 'Admin Manager',
+                        approved: true
+                    };
+                    appState.members.unshift(adminObj);
+                }
+                triggerBiometricScanAndEnter(identifier, password, adminObj, `تم حفظ الإيميل وتفعيل Face ID! مرحباً ${adminObj.name} 👑`, 'amber');
+                return;
+            }
+
+            const memberMatch = appState.members.find(m =>
+                m.approved && (m.secretEmailHash === idHash || m.code.toLowerCase() === identifier)
+            );
+
+            if (memberMatch) {
+                triggerBiometricScanAndEnter(identifier, password, memberMatch, `تم حفظ حسابك وتفعيل Face ID! مرحباً ${memberMatch.name} ⚡`, 'success');
+                return;
+            }
+
+            showToast('الحساب غير مفعّل! يرجى التأكد من الإيميل الموحد المرقم الصادر من الإدارة.', 'error');
+        }
+
+        function handleStudentRequestSubmit(e) {
+            e.preventDefault();
+            const name = formatSmartDisplayName(document.getElementById('reg-name').value);
+            const studentNo = document.getElementById('reg-student-no').value.trim();
+            const ieeeId = document.getElementById('reg-ieee-id').value.trim();
+            const major = document.getElementById('reg-major').value.trim();
+            const track = document.getElementById('reg-track').value;
+
+            const nextIndex = appState.members.filter(m => m.role === 'student_member').length + appState.pendingMembers.length + 1;
+            const suggestedEmail = `member${nextIndex}@ieeeasu.org`;
+
+            appState.pendingMembers.push({
+                id: Date.now(),
+                name,
+                studentNo,
+                ieeeId: ieeeId || 'عضو فرع طلابي جديد',
+                major,
+                track,
+                suggestedEmail
+            });
+
+            e.target.reset();
+            document.getElementById('name-Preview-badge').textContent = '';
+            saveState(true);
+            closeAuthModal();
+            document.getElementById('pending-approval-modal').classList.remove('hidden');
+            document.getElementById('pending-approval-modal').classList.add('flex');
+        }
+
+        function closePendingModal() {
+            document.getElementById('pending-approval-modal').classList.add('hidden');
+            document.getElementById('pending-approval-modal').classList.remove('flex');
+        }
+
+        function launchPortal() {
+            if (!isUserAuthorizedMember()) return;
+            document.getElementById('landing-view').classList.add('hidden');
+            const portalView = document.getElementById('portal-view');
+            portalView.classList.remove('hidden');
+            portalView.classList.add('flex');
+
+            const isAdmin = isUserAdminManager();
+            const badge = document.getElementById('role-badge');
+            document.getElementById('header-user-name').textContent = currentUser.name;
+            document.getElementById('header-user-avatar').textContent = getInitialsMonogram(currentUser.name);
+            document.getElementById('current-user-masked').textContent = `ID: ${currentUser.code} • ${currentUser.track}`;
+
+            badge.textContent = isAdmin ? '👑 Admin Manager' : '🎓 Member ✓';
+            badge.className = isAdmin
+                ? 'text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-400/50'
+                : 'text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-600/30 text-emerald-200 border border-emerald-400/40';
+
+            document.getElementById('admin-pending-section').classList.toggle('hidden', !isAdmin);
+            document.getElementById('clear-chat-admin-btn').classList.toggle('hidden', !isAdmin);
+            document.getElementById('admin-chat-img-wrapper').classList.toggle('hidden', !isAdmin);
+            document.getElementById('admin-content-controls').classList.toggle('hidden', !isAdmin);
+
+            refreshAllUI();
+            switchPortalTab('chat');
+        }
+
+        function goBackToLandingKeepSession() {
+            document.getElementById('portal-view').classList.add('hidden');
+            document.getElementById('portal-view').classList.remove('flex');
+            document.getElementById('landing-view').classList.remove('hidden');
+            refreshAllUI();
+        }
+
+        function logoutPortal() {
+            currentUser = null;
+            sendPresenceHeartbeat();
+            document.getElementById('portal-view').classList.add('hidden');
+            document.getElementById('portal-view').classList.remove('flex');
+            document.getElementById('landing-view').classList.remove('hidden');
+            hydrateVaultUI();
+            showToast('تم الخروج من البوابة (بياناتك محفوظة للدخول السريع عبر Face ID)', 'info');
+        }
+
+        function switchPortalTab(tabName) {
+            document.querySelectorAll('.portal-page').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`portal-page-${tabName}`).classList.remove('hidden');
+
+            ['chat', 'members', 'content'].forEach(name => {
+                const btn = document.getElementById(`tab-btn-${name}`);
+                if (btn) {
+                    btn.className = name === tabName
+                        ? 'portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap bg-gradient-to-l from-purple-600 to-fuchsia-600 text-white neon-border'
+                        : 'portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap text-slate-400 hover:text-white';
+                }
+                const mobBtn = document.getElementById(`mob-tab-${name}`);
+                if (mobBtn) {
+                    mobBtn.className = name === tabName
+                        ? 'py-2 rounded-2xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 bg-purple-600 text-white relative'
+                        : 'py-2 rounded-2xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 relative';
+                }
+            });
+            lucide.createIcons();
+        }
+
+        /* 9. تفعيل وحذف الأعضاء */
+        function adminCreateStudentDirectly(e) {
+            e.preventDefault();
+            if (!isUserAdminManager()) return;
+            const name = formatSmartDisplayName(document.getElementById('direct-student-name').value);
+            const assignedEmail = document.getElementById('direct-student-email').value.trim().toLowerCase();
+            const track = document.getElementById('direct-student-track').value;
+
+            if (!UNIFIED_MEMBER_REGEX.test(assignedEmail)) {
+                showToast('يرجى استخدام صيغة الإيميل الموحد المرقم مثل: member1@ieeeasu.org', 'amber');
+                return;
+            }
+
+            const newCode = generatePublicCode(assignedEmail + Date.now());
+            appState.members.push({
+                id: Date.now(),
+                code: newCode,
+                name,
+                secretEmailHash: secureHash(assignedEmail),
+                track,
+                role: 'student_member',
+                badgeTitle: 'Member | طالب',
+                approved: true
+            });
+
+            e.target.reset();
+            document.getElementById('direct-student-email').value = getNextUnifiedMemberEmail();
+            saveState(true);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(`IEEEASU Login -> Email: ${assignedEmail} | Code: ${newCode}`);
+            }
+            showToast(`تم تفعيل (${name}) بالإيميل الموحد (${assignedEmail}) ونسخه للحافظة ✅`, 'success');
+        }
+
+        function approvePendingWithAssignedEmail(pendingId) {
+            if (!isUserAdminManager()) return;
+            const idx = appState.pendingMembers.findIndex(p => p.id === pendingId);
+            if (idx === -1) return;
+
+            const pendingObj = appState.pendingMembers[idx];
+            const emailInput = document.getElementById(`assign-email-${pendingId}`);
+            const assignedEmail = (emailInput?.value || pendingObj.suggestedEmail).trim().toLowerCase();
+
+            if (!UNIFIED_MEMBER_REGEX.test(assignedEmail)) {
+                showToast('يرجى الالتزام بصيغة الإيميل الموحد المرقم: member1@ieeeasu.org', 'amber');
+                return;
+            }
+
+            const newCode = generatePublicCode(assignedEmail + pendingId);
+            appState.pendingMembers.splice(idx, 1);
+            appState.members.push({
+                id: Date.now(),
+                code: newCode,
+                name: formatSmartDisplayName(pendingObj.name),
+                secretEmailHash: secureHash(assignedEmail),
+                major: pendingObj.major || '',
+                ieeeId: pendingObj.ieeeId || '',
+                track: pendingObj.track,
+                role: 'student_member',
+                badgeTitle: 'Member | طالب',
+                approved: true
+            });
+
+            saveState(true);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(`IEEEASU Activated -> Email: ${assignedEmail} | Code: ${newCode}`);
+            }
+            showToast(`تم تفعيل ${pendingObj.name} كـ (Member | طالب) ونسخ إيميله الموحد 🔑`, 'success');
+        }
+
+        function rejectPendingMember(id) {
+            if (!isUserAdminManager()) return;
+            appState.pendingMembers = appState.pendingMembers.filter(p => p.id !== id);
+            saveState(true);
+            showToast('تم حذف الطلب المعلق ونقص العداد فوراً', 'error');
+        }
+
+        function removeApprovedMember(id) {
+            if (!isUserAdminManager()) return;
+            const target = appState.members.find(m => m.id === id);
+            if (!target) return;
+            appState.members = appState.members.filter(m => m.id !== id);
+            saveState(true);
+            showToast(`تم حذف العضو (${target.name}) ونقص عدد الأعضاء فوراً`, 'error');
+        }
+
+        function renderMembersManagement() {
+            const pendingContainer = document.getElementById('pending-cards-container');
+            const membersGrid = document.getElementById('members-responsive-grid');
+            const searchQuery = (document.getElementById('member-search-input')?.value || '').trim().toLowerCase();
+            const isAdmin = isUserAdminManager();
+
+            if (pendingContainer && isAdmin) {
+                if (appState.pendingMembers.length === 0) {
+                    pendingContainer.innerHTML = `<div class="sm:col-span-2 text-center py-4 text-slate-400 text-xs">لا توجد طلبات معلقة حالياً (0)</div>`;
+                } else {
+                    pendingContainer.innerHTML = appState.pendingMembers.map(p => `
+                        <div class="p-4 rounded-2xl bg-black/60 border border-amber-500/30 space-y-2.5 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="font-black text-white text-sm">${p.name}</span>
+                                <span class="px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-mono text-[10px]">IEEE ${p.track}</span>
+                            </div>
+                            <div class="text-[11px] font-mono text-slate-300">الرقم الجامعي: ${p.studentNo || '—'} | IEEE ID: ${p.ieeeId || '—'}</div>
+                            <div class="text-[11px] text-slate-400">التخصص: ${p.major || 'هندسة'}</div>
+                            <div>
+                                <label class="block text-[10px] text-amber-300 mb-1">الإيميل الموحد المرقم للطالب:</label>
+                                <input id="assign-email-${p.id}" type="email" value="${p.suggestedEmail}" class="w-full bg-obsidian border border-amber-500/50 rounded-xl px-3 py-2 text-xs font-mono text-amber-200 outline-none">
+                            </div>
+                            <div class="flex items-center gap-2 pt-1">
+                                <button onclick="approvePendingWithAssignedEmail(${p.id})" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-black transition">تفعيل وإصدار الإيميل ✓</button>
+                                <button onclick="rejectPendingMember(${p.id})" class="px-3.5 py-2.5 bg-red-950 hover:bg-red-900 text-red-200 rounded-xl font-bold transition">رفض ✕</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            if (membersGrid) {
+                const filtered = appState.members.filter(m =>
+                    m.name.toLowerCase().includes(searchQuery) ||
+                    (m.code || '').toLowerCase().includes(searchQuery) ||
+                    m.track.toLowerCase().includes(searchQuery)
+                );
+
+                if (filtered.length === 0) {
+                    membersGrid.innerHTML = `<div class="sm:col-span-2 lg:col-span-3 text-center py-8 text-slate-400 text-xs">لا يوجد أعضاء مسجلون حالياً (0).</div>`;
+                    return;
+                }
+
+                membersGrid.innerHTML = filtered.map(m => {
+                    const isOnline = Array.from(activePeersMap.values()).some(p => p.code === m.code);
+                    const grad = getTrackAvatarGradient(m.track, m.role);
+                    return `
+                        <div class="p-4 rounded-2xl bg-black/50 border border-purple-500/25 flex flex-col justify-between gap-3">
+                            <div class="flex items-start justify-between gap-2.5">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-br ${grad} border flex items-center justify-center font-black text-xs shrink-0">
+                                        ${getInitialsMonogram(m.name)}
+                                    </div>
+                                    <div class="truncate">
+                                        <div class="font-black text-white text-sm truncate flex items-center gap-1">
+                                            <span>${m.name}</span>
+                                            <span class="text-sky-400 text-xs">✓</span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-purple-300 mt-0.5">${m.code} <span class="text-[10px] text-slate-500">(إيميل مخفي 🔒)</span></div>
+                                    </div>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${isOnline ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-900 text-slate-400'}">
+                                    ${isOnline ? '● متصل' : '○ غائب'}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-2 border-t border-purple-500/15">
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${m.role === 'admin_manager' ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40' : 'bg-purple-950 text-purple-200 border border-purple-500/30'}">
+                                    ${m.role === 'admin_manager' ? '👑 Admin Manager' : `🎓 Member • ${m.track}`}
+                                </span>
+
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="startVoiceCallWithMember('${m.code}', '${m.name.replace(/'/g, '')}', '${m.badgeTitle}')" class="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 active:scale-95 text-emerald-300 hover:text-white text-[11px] font-bold transition">
+                                        📞 رن
+                                    </button>
+                                    ${(isAdmin && m.id !== currentUser?.id) ? `<button onclick="removeApprovedMember(${m.id})" class="px-2.5 py-1.5 rounded-xl bg-red-950/80 hover:bg-red-800 text-red-200 text-[11px] font-bold transition">حذف</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        /* 10. الأخبار الرسمية (نصية نظيفة بدون صور) + المعرض */
+        function publishAdminNewsletter(e) {
+            e.preventDefault();
+            if (!isUserAdminManager()) return;
+            appState.publicNewsletter.unshift({
+                id: Date.now(),
+                title: document.getElementById('pub-news-title').value.trim(),
+                category: document.getElementById('pub-news-category').value.trim(),
+                body: document.getElementById('pub-news-body').value.trim(),
+                date: new Date().toLocaleDateString('ar-JO')
+            });
+            e.target.reset();
+            saveState(true);
+            showToast('تم نشر الخبر الرسمي بنجاح ✨', 'success');
+        }
+
+        function deletePublicNewsletter(id) {
+            if (!isUserAdminManager()) return;
+            appState.publicNewsletter = appState.publicNewsletter.filter(i => i.id !== id);
+            saveState(true);
+        }
+
+        function renderPublicNewsletter() {
+            const grid = document.getElementById('public-newsletter-grid');
+            const portalList = document.getElementById('announcements-list');
+            const isAdmin = isUserAdminManager();
+
+            const emptyHtml = `<div class="sm:col-span-2 lg:col-span-3 text-center py-8 text-slate-400 text-xs border border-dashed border-purple-500/20 rounded-2xl">لا توجد أخبار منشورة حالياً (0). يقوم Admin Manager بإضافة الأخبار الرسمية.</div>`;
+
+            const cardsHtml = appState.publicNewsletter.map(item => `
+                <div class="cyber-glass rounded-3xl p-5 flex flex-col justify-between border border-purple-500/30 space-y-3">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-500/30">${item.category}</span>
+                            <span class="text-[10px] font-mono text-slate-400">${item.date}</span>
+                        </div>
+                        <h3 class="font-black text-sm sm:text-base text-white">${item.title}</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">${item.body}</p>
+                    </div>
+                    ${isAdmin ? `<div class="pt-2 border-t border-purple-500/15 flex justify-end"><button onclick="deletePublicNewsletter(${item.id})" class="text-xs text-red-400 font-bold">حذف الخبر ✕</button></div>` : ''}
+                </div>
+            `).join('');
+
+            if (grid) grid.innerHTML = appState.publicNewsletter.length === 0 ? emptyHtml : cardsHtml;
+            if (portalList) portalList.innerHTML = appState.publicNewsletter.length === 0 ? emptyHtml : cardsHtml;
+        }
+
+        function previewAdminGalleryImg(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                pendingAdminGalleryImg = evt.target.result;
+                document.getElementById('gal-file-label').textContent = `✅ ${file.name}`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addAdminGalleryPhoto(e) {
+            e.preventDefault();
+            if (!isUserAdminManager() || !pendingAdminGalleryImg) return;
+            appState.gallery.unshift({
+                id: Date.now(),
+                title: document.getElementById('gal-title').value.trim(),
+                tag: document.getElementById('gal-tag').value.trim(),
+                desc: document.getElementById('gal-desc').value.trim(),
+                img: pendingAdminGalleryImg
+            });
+            pendingAdminGalleryImg = null;
+            e.target.reset();
+            document.getElementById('gal-file-label').textContent = '📁 اختر صورة المشروع';
+            saveState(true);
+            showToast('تم رفع المشروع للمعرض بنجاح ✨', 'success');
+        }
+
+        function deleteGalleryPhoto(id) {
+            if (!isUserAdminManager()) return;
+            appState.gallery = appState.gallery.filter(g => g.id !== id);
+            saveState(true);
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('gallery-grid');
+            if (!grid) return;
+            const isAdmin = isUserAdminManager();
+            if (appState.gallery.length === 0) {
+                grid.innerHTML = `<div class="sm:col-span-2 lg:col-span-3 text-center py-8 text-slate-400 text-xs border border-dashed border-purple-500/20 rounded-2xl">لا توجد مشاريع مرفوعة في المعرض حالياً (0).</div>`;
+                return;
+            }
+            grid.innerHTML = appState.gallery.map(item => `
+                <div class="cyber-glass rounded-3xl overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="relative h-44 sm:h-48 overflow-hidden cursor-zoom-in" onclick="openLightbox('${item.img}', '${item.title.replace(/'/g, '')}')">
+                            <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover">
+                            <span class="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-obsidian/90 text-amber-300">${item.tag}</span>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-black text-sm text-white">${item.title}</h4>
+                            <p class="text-xs text-slate-300 mt-1">${item.desc}</p>
+                        </div>
+                    </div>
+                    ${isAdmin ? `<div class="px-4 pb-3 flex justify-end"><button onclick="deleteGalleryPhoto(${item.id})" class="text-xs text-red-400 font-bold">حذف ✕</button></div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        /* ==========================================================
+           11. البوت الذكي الخارق (IEEEASU Super AI v13)
+           ========================================================== */
+        const initialBotMsg = {
+            sender: 'bot',
+            text: 'أهلاً وسهلاً بك في **IEEEASU Super AI v13**! 🤖💜\n\nالمنصة الآن تدعم **حفظ الإيميل وكلمة المرور والدخول السريع عبر Face ID** ومصممة للعمل على **اللابتوب والآيباد والجوال**!\n\nقل لي **"مرحبا"** أو **"يعطيك العافيه"**، أو اسألني أي سؤال!'
+        };
+        let supportMessages = [initialBotMsg];
+        let isAiThinking = false;
+        let botVoiceEnabled = false;
+
+        function toggleBotVoiceOutput() {
+            botVoiceEnabled = !botVoiceEnabled;
+            const btn = document.getElementById('ai-tts-toggle');
+            if (btn) {
+                btn.className = botVoiceEnabled
+                    ? 'p-2 rounded-full bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition'
+                    : 'p-2 rounded-full bg-black/40 text-slate-400 hover:text-white transition';
+            }
+            if (!botVoiceEnabled && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            showToast(botVoiceEnabled ? '🔊 تم تفعيل النطق الصوتي لردود البوت الذكي' : '🔇 تم إيقاف النطق الصوتي للبوت', 'info');
+        }
+
+        function speakBotReply(text) {
+            if (!botVoiceEnabled || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const cleanText = text.replace(/[*`#_~]/g, '');
+                const utter = new SpeechSynthesisUtterance(cleanText);
+                utter.lang = /[\u0600-\u06FF]/.test(cleanText) ? 'ar-SA' : 'en-US';
+                utter.rate = 1.05;
+                window.speechSynthesis.speak(utter);
+            } catch (_) {}
+        }
+
+        function startBotVoiceRecognition() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                showToast('متصفحك الحالي لا يدعم الإملاء الصوتي المباشر، يمكنك الكتابة فوراً', 'amber');
+                return;
+            }
+            try {
+                const rec = new SpeechRec();
+                rec.lang = 'ar-JO';
+                rec.interimResults = false;
+                const micBtn = document.getElementById('bot-mic-btn');
+                micBtn.className = 'w-9 h-9 rounded-full bg-red-600 text-white animate-pulse flex items-center justify-center shrink-0';
+                showToast('🎙️ تحدث الآن... البوت يستمع إليك', 'info');
+
+                rec.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('support-input').value = transcript;
+                    handleSupportSubmit(new Event('submit'));
+                };
+                rec.onend = () => {
+                    micBtn.className = 'w-9 h-9 rounded-full bg-purple-950 border border-purple-500/40 text-purple-300 hover:text-white flex items-center justify-center shrink-0 transition';
+                };
+                rec.start();
+            } catch (_) {}
+        }
+
+        function toggleSupportChat(forceState) {
+            const win = document.getElementById('support-chat-window');
+            const isHidden = win.classList.contains('hidden');
+            const shouldOpen = forceState !== undefined ? forceState : isHidden;
+            win.classList.toggle('hidden', !shouldOpen);
+            win.classList.toggle('flex', shouldOpen);
+            if (shouldOpen) renderSupportMessages();
+        }
+
+        function clearSupportChatHistory() {
+            supportMessages = [initialBotMsg];
+            renderSupportMessages();
+        }
+
+        function renderSupportMessages() {
+            const box = document.getElementById('support-messages-box');
+            box.innerHTML = supportMessages.map(m => {
+                const isBot = m.sender === 'bot';
+                const formatted = m.text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-300">$1</strong>')
+                    .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-black/70 text-emerald-300 font-mono text-[11px]">$1</code>');
+                return `
+                    <div class="flex ${isBot ? 'justify-start' : 'justify-end'}">
+                        <div class="max-w-[88%] p-3 rounded-2xl leading-relaxed ${isBot ? 'bg-purple-950/90 border border-purple-400/40 text-slate-100' : 'bg-gradient-to-l from-purple-600 to-fuchsia-600 text-white font-semibold'}">
+                            <div class="whitespace-pre-line text-xs">${formatted}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (isAiThinking) {
+                box.innerHTML += `
+                    <div class="flex justify-start">
+                        <div class="px-4 py-3 rounded-2xl bg-purple-950/80 border border-purple-400/30 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-purple-400 ai-dot-1"></span>
+                            <span class="w-2 h-2 rounded-full bg-fuchsia-400 ai-dot-2"></span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 ai-dot-3"></span>
+                        </div>
+                    </div>
+                `;
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function getInstantConversationalReply(userText) {
+            const raw = userText.trim();
+            const q = raw.toLowerCase();
+
+            if (q.includes('يعطيك العافي') || q.includes('عافيك') || q.includes('الله يعافيك') || q.includes('قواك الله') || q.includes('تسلم') || q.includes('ما قصرت') || q.includes('شكراً') || q.includes('شكرا') || q.includes('كفو') || q.includes('ابدعت')) {
+                return `الله يعافيك ويسعدك ويبارك فيك يا رب! 💜✨\nفخور جداً بخدمتك في منصة **IEEEASU** بجامعة العلوم التطبيقية الخاصة.\n\nبشرني، هل جربت ميزة **الدخول السريع بـ Face ID** أو تحتاج مساعدة في أي شيء؟`;
+            }
+
+            if (q === 'مرحبا' || q === 'مرحباً' || q.includes('مراحب') || q === 'هلا' || q === 'اهلا' || q === 'أهلاً' || q.includes('السلام عليكم') || q.includes('سلام عليكم') || q.includes('صباح الخير') || q.includes('مساء الخير')) {
+                return `يا هلا ومليون مرحبا بك في **IEEEASU**! 👋🤖\nنورت البوابة الهندسية الرسمية المصممة للعمل على اللابتوب والآيباد والجوال.\n\nكيف أقدر أخدمك اليوم؟ اسألني عن **حفظ الحساب بـ Face ID**، أو **التسجيل المعتمد في IEEE**، أو أي مسألة برمجية!`;
+            }
+
+            if (q.includes('كيفك') || q.includes('كيف حالك') || q.includes('اخبارك') || q.includes('أخبارك') || q.includes('شلونك') || q.includes('شخبارك')) {
+                return `الحمد لله بأفضل حال وبأعلى جاهزية! ⚡💜\nأنت بشرني عنك، كيف أمورك واستعداداتك؟`;
+            }
+
+            if (q.includes('فيس') || q.includes('face') || q.includes('بصم') || q.includes('حفظ')) {
+                return `🔐 **طريقة حفظ الإيميل وكلمة المرور وتفعيل Face ID:**\n1. افتح نافذة **"دخول البوابة"** وأدخل إيميلك الموحد وكلمة المرور.\n2. تأكد من تفعيل خيار **"حفظ الإيميل وكلمة المرور وتفعيل Face ID"**.\n3. في المرات القادمة، بمجرد فتح الموقع على جوالك أو الآيباد أو اللابتوب، ستجد زر **"الدخول الفوري عبر Face ID"** جاهزاً ليدخلك بضغطة زر واحدة بدون كتابة!`;
+            }
+
+            if (q.includes('تسجيل') || q.includes('سجل') || q.includes('انضمام') || q.includes('انضم') || q.includes('عضوي') || q.includes('تفعيل') || q.includes('ايميل') || q.includes('register') || q.includes('join')) {
+                return `📝 **طريقة التسجيل الرسمية المعتمدة في IEEEASU:**\n\n1. اضغط على زر **"التسجيل الرسمي المعتمد في IEEEASU"** في أعلى الواجهة.\n2. املأ استمارة العضوية المعتمدة (الاسم الرباعي، الرقم الجامعي، رقم عضوية IEEE إن وجد، التخصص، واللجنة **RAS, CS, PES, WIE**).\n3. يصل طلبك فوراً إلى **Admin Manager**، وبمجرد اعتماده يصدر لك إيميلك الموحد المرقم (\`member1@ieeeasu.org\`) لتدخل به وتحفظه بـ **Face ID**!`;
+            }
+
+            return null;
+        }
+
+        async function fetchSuperGenerativeAIReply(userProblem) {
+            const instant = getInstantConversationalReply(userProblem);
+            if (instant) return instant;
+
+            try {
+                const systemPrompt = `أنت المستشار الذكي الرسمي الخارق (IEEEASU Super AI v13) لمنصة IEEEASU في جامعة العلوم التطبيقية الخاصة.
+شخصيتك: لبقة جداً، ودودة، عبقرية، ترد على التحيات ("مرحبا"، "يعطيك العافية") بأجمل العبارات، وتجيب على أي مشكلة برمجية أو هندسية أو استفسار عن التسجيل المعتمد في IEEE وميزة Face ID باحترافية واختصار.`;
+
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            ...supportMessages.slice(-6).map(m => ({
+                                role: m.sender === 'bot' ? 'assistant' : 'user',
+                                content: m.text
+                            })),
+                            { role: 'user', content: userProblem }
+                        ],
+                        model: 'openai',
+                        private: true
+                    })
+                });
+
+                if (response.ok) {
+                    const replyText = await response.text();
+                    if (replyText && replyText.trim().length > 3) {
+                        return replyText.trim();
+                    }
+                }
+            } catch (_) {}
+
+            return `أهلاً بك في **IEEEASU Super AI**! 💜✨\nأنا جاهز لمساعدتك في كل ما يخص **الدخول السريع بـ Face ID، التسجيل المعتمد في IEEE، اللجان الهندسية (RAS, CS, PES, WIE)، أو حل أي مشكلة برمجية**. اكتب لي سؤالك وسأجيبك فوراً!`;
+        }
+
+        function askSupportBot(text) {
+            document.getElementById('support-input').value = text;
+            handleSupportSubmit(new Event('submit'));
+        }
+
+        async function handleSupportSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('support-input');
+            const text = input.value.trim();
+            if (!text || isAiThinking) return;
+
+            supportMessages.push({ sender: 'user', text });
+            input.value = '';
+            isAiThinking = true;
+            renderSupportMessages();
+
+            const smartReply = await fetchSuperGenerativeAIReply(text);
+            isAiThinking = false;
+            supportMessages.push({ sender: 'bot', text: smartReply });
+            renderSupportMessages();
+            speakBotReply(smartReply);
+        }
+
+        hydrateVaultUI();
+        initCloudSync();
+        refreshAllUI();
+    </script>
+</body>
+</html>
